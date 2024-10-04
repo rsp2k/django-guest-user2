@@ -1,4 +1,6 @@
 import pytest
+from django.test import RequestFactory
+
 from guest_user.functions import get_guest_model
 from guest_user.models import GuestManager
 
@@ -14,13 +16,39 @@ def test_setting_enabled(settings, client):
     assert response.context["user"].is_anonymous
 
 
-def my_name_generator():
+def my_name_generator(**kwargs):
     return "custom_name"
+
+
+TEST_USERNAME = "custom_name"
+TEST_REQUEST_URL = "/some-url/"
+
+
+def my_name_generator_using_request(request=None):
+    prefix = ""
+    if request:
+        prefix = request.COOKIES['username_prefix']
+    return f"{prefix}{TEST_USERNAME}"
 
 
 def test_setting_name_generator(settings):
     settings.GUEST_USER_NAME_GENERATOR = "test_proj.test_settings.my_name_generator"
-    assert GuestManager().generate_username() == "custom_name"
+    assert GuestManager().generate_username() == TEST_USERNAME
+
+
+def test_setting_name_generator_passing_request(settings):
+    settings.GUEST_USER_NAME_GENERATOR = "test_proj.test_settings.my_name_generator"
+    request = RequestFactory().get(TEST_REQUEST_URL)
+    assert GuestManager().generate_username(request=request) == TEST_USERNAME
+
+
+def test_setting_name_generator_using_request(settings):
+    TEST_PREFIX = 'the_prefix_'
+    request = RequestFactory().get(TEST_REQUEST_URL)
+    request.COOKIES['username_prefix'] = TEST_PREFIX
+
+    settings.GUEST_USER_NAME_GENERATOR = "test_proj.test_settings.my_name_generator_using_request"
+    assert GuestManager().generate_username(request=request) == f"{TEST_PREFIX}{TEST_USERNAME}"
 
 
 def test_setting_model(settings):

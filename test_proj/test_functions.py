@@ -1,5 +1,7 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.test import RequestFactory
+
 from guest_user.functions import (
     generate_numbered_username,
     generate_uuid_username,
@@ -20,8 +22,12 @@ def test_is_guest_user():
     assert is_guest_user(user) is True
 
 
+TEST_REQUEST_URL = "/some-url/"
+
+
 def test_generate_uuid_username():
-    uuid_username = generate_uuid_username()
+    request = RequestFactory().get(TEST_REQUEST_URL)
+    uuid_username = generate_uuid_username(request=request)
     assert len(uuid_username) == 32
     assert uuid_username.isalnum()
 
@@ -34,7 +40,8 @@ def test_generate_uuid_username_unique():
 
 
 def test_generate_numbered_username():
-    numbered_username = generate_numbered_username()
+    request = RequestFactory().get(TEST_REQUEST_URL)
+    numbered_username = generate_numbered_username(request=request)
     assert len(numbered_username) == 9
     assert numbered_username.startswith("Guest")
     assert numbered_username[-4:].isdigit()
@@ -43,14 +50,16 @@ def test_generate_numbered_username():
 def test_generate_numbered_username_custom(settings):
     """Customize the numbered username generator with settings."""
     settings.GUEST_USER_NAME_PREFIX = "Gast"
-    numbered_username = generate_numbered_username()
+    request = RequestFactory().get(TEST_REQUEST_URL)
+    numbered_username = generate_numbered_username(request=request)
     assert len(numbered_username) == 8
     assert numbered_username.startswith("Gast")
     assert numbered_username[-4:].isdigit()
 
     settings.GUEST_USER_NAME_PREFIX = "anonymous#"
     settings.GUEST_USER_NAME_SUFFIX_DIGITS = 5
-    anon_username = generate_numbered_username()
+    request = RequestFactory().get(TEST_REQUEST_URL)
+    anon_username = generate_numbered_username(request=request)
     assert len(anon_username) == 15
     assert anon_username.startswith("anonymous#")
     assert anon_username[-5:].isdigit()

@@ -44,16 +44,16 @@ class GuestManager(models.Manager.from_queryset(GuestQuerySet)):
 
         """
         if username is None:
-            username = self.generate_username()
+            username = self.generate_username(request=request)
 
         user = None
         while user is None:
             try:
                 with transaction.atomic():
-                    user = UserModel.objects.create_user(username, "")
+                    user = UserModel.objects.create_user(username)
             except IntegrityError:
                 # retry with a new username
-                username = self.generate_username()
+                username = self.generate_username(request=request)
 
         self.create(user=user)
         if request is not None:

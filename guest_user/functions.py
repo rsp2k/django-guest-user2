@@ -27,7 +27,7 @@ def maybe_create_guest_user(request):
         if not settings.BLOCKED_USER_AGENTS.search(user_agent):
             UserModel = get_user_model()
             Guest = get_guest_model()
-            user = Guest.objects.create_guest_user(request)
+            user = Guest.objects.create_guest_user(request=request)
             user = authenticate(
                 request=request,
                 username=getattr(user, UserModel.USERNAME_FIELD),
@@ -72,14 +72,14 @@ def is_guest_user(user) -> bool:
     return GuestModel.objects.filter(user=user).exists()
 
 
-def generate_uuid_username() -> str:
+def generate_uuid_username(**kwargs) -> str:
     """Generate a random username based on UUID."""
     UserModel = get_user_model()
     max_length = UserModel._meta.get_field(UserModel.USERNAME_FIELD).max_length
     return uuid.uuid4().hex[:max_length]
 
 
-def generate_numbered_username() -> str:
+def generate_numbered_username(**kwargs) -> str:
     """Generate a random username based on a prefix and a random number."""
     prefix = settings.NAME_PREFIX
     digits = settings.NAME_SUFFIX_DIGITS
@@ -87,7 +87,7 @@ def generate_numbered_username() -> str:
     return f"{prefix}{number:{f'0{digits}'}}"
 
 
-def generate_friendly_username() -> str:
+def generate_friendly_username(**kwargs) -> str:
     """
     Generate a random username with adjective and nouns put together.
 
