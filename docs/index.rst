@@ -44,7 +44,7 @@ Quick links
 
    setup
    usage
-   contrib
+   integrations
    advanced
    config
    api
