@@ -1,5 +1,5 @@
 import re
-from typing import List
+from re import Pattern
 
 
 class AppSettings:
@@ -166,7 +166,7 @@ class AppSettings:
 
     # return type is the type for the setting, not return type of this property
     @property
-    def BLOCKED_USER_AGENTS(self) -> List[str]:
+    def BLOCKED_USER_AGENTS(self) -> Pattern[str]:
         """
         A list of ignored user agents that will not create guest users.
 
@@ -194,7 +194,7 @@ class AppSettings:
             ],
         )
 
-        expression = f"({ ')|('.join(blocked_uas) })"
+        expression = f"({')|('.join(blocked_uas)})"
         return re.compile(expression, re.IGNORECASE)
 
     @property

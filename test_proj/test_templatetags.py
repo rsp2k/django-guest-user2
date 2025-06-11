@@ -222,7 +222,6 @@ class TestGuestUserTemplateTag:
 
     def test_is_guest_user_filter_with_request_context(self):
         """Test filter works correctly in request context processor scenario."""
-        from django.contrib.auth.models import AnonymousUser
 
         GuestModel = get_guest_model()
         guest_user = GuestModel.objects.create_guest_user()
