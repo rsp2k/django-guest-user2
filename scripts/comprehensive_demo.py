@@ -539,7 +539,7 @@ def main():
         browser.close()
 
         # Create HTML index page
-        html_path = create_html_index(capture_results)
+        create_html_index(capture_results)
 
         # Print comprehensive summary
         logger.info("  " + "=" * 80)
