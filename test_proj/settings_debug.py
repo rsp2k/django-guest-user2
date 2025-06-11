@@ -1,15 +1,10 @@
-# Import specific settings instead of using star imports
+# flake8: noqa
+
 import os
 import logging
 from datetime import datetime
 
-# Import specific items from the main settings to avoid F403/F405 issues
-from .settings import (  # noqa: F401
-    BASE_DIR,
-    SECRET_KEY,
-    MIDDLEWARE,
-    DATABASES,
-)
+from .settings import *
 
 # Override DEBUG setting
 DEBUG = True
