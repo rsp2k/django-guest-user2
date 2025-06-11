@@ -1,8 +1,26 @@
-# Import all settings from the original settings file
-from .settings import *
+# Import specific settings instead of using star imports
 import os
 import logging
 from datetime import datetime
+
+# Import specific items from the main settings to avoid F403/F405 issues
+from .settings import (
+    BASE_DIR,
+    SECRET_KEY,
+    MIDDLEWARE,
+    DATABASES,
+    INSTALLED_APPS,
+    STATIC_URL,
+    USE_TZ,
+    TIME_ZONE,
+    LANGUAGE_CODE,
+    USE_I18N,
+    USE_L10N,
+    ROOT_URLCONF,
+    WSGI_APPLICATION,
+    AUTH_PASSWORD_VALIDATORS,
+    TEMPLATES,
+)
 
 # Override DEBUG setting
 DEBUG = True
