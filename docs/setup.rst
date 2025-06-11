@@ -1,3 +1,18 @@
+Project Background
+==================
+
+This project is a maintained fork of the original `julianwachholz/django-guest-user <https://github.com/julianwachholz/django-guest-user>`_
+repository, which appears to be unmaintained (last commit in early 2023). This fork provides:
+
+- 🐛 **Bug fixes** and improvements
+- 📦 **Dependency updates** including Django 5.x support
+- 🧪 **Expanded testing** across more Python/Django combinations  
+- 📚 **Updated documentation**
+- 🛠️ **Ongoing maintenance** and issue resolution
+
+The project builds on the excellent foundation laid by Julian Wachholz and the original 
+`django-lazysignup <https://github.com/danfairs/django-lazysignup>`_ by Dan Fairs.
+
 Dependencies
 ============
 
@@ -103,6 +118,19 @@ The following decorators and template filters need to be replaced by their respe
 - ``@require_nonlazy_user`` ➡️ :func:`@regular_user_required<guest_user.decorators.regular_user_required>`
 - Template filter ``is_lazy_user`` ➡️ :func:`is_guest_user<guest_user.templatetags.guest_user.is_guest_user>`
 
+Migrating from Original ``django-guest-user``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you're migrating from the original `julianwachholz/django-guest-user`_ repository
+to this maintained fork, the transition should be seamless:
+
+1. **Update your requirements**: No code changes needed, just update the source repository
+2. **Version compatibility**: This fork maintains API compatibility
+3. **Enhanced features**: You'll get improved Django 5.x support and better testing
+4. **Ongoing support**: Active maintenance and issue resolution
+
+.. _julianwachholz/django-guest-user: https://github.com/julianwachholz/django-guest-user
+
 Version Compatibility
 ======================
 
@@ -163,3 +191,23 @@ This package supports a wide range of Django and Python versions:
 
 **Django LTS Support**: Django 5.2 is the current LTS (Long Term Support) version,
 supported until April 2028.
+
+Recent Improvements
+===================
+
+This maintained fork includes several enhancements over the original:
+
+**Version 0.5.5+ (This Fork)**:
+
+- ✨ Enhanced request parameter support in name generators
+- 🔧 Fixed missing dependency issues (requests-oauthlib)
+- 🧪 Expanded test matrix covering 27 Python/Django combinations
+- 📚 Updated documentation for Django 5.x
+- 🛡️ Improved code quality with Black formatting and comprehensive linting
+- 🐛 Various bug fixes and stability improvements
+
+**Previous Versions** (Original Repository):
+
+- Basic Django 3.2-4.2 support
+- Core guest user functionality
+- Foundation for current improvements
