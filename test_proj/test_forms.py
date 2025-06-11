@@ -186,15 +186,9 @@ class TestUserCreationForm:
 
         form = UserCreationForm(instance=guest_user, data=form_data)
 
-        # Before validation, cleaned_data might not exist
-        try:
-            credentials = form.get_credentials()
-            # If it works, check the values
-            assert credentials["username"] == "testuser"
-            assert credentials["password"] == "testpass123"
-        except KeyError:
-            # Expected if cleaned_data doesn't exist yet
-            pass
+        # Before validation, cleaned_data should not exist and should raise AttributeError
+        with pytest.raises(AttributeError, match="cleaned_data is not available"):
+            form.get_credentials()
 
         # After validation, it should work
         assert form.is_valid()
@@ -419,4 +413,4 @@ class TestFormIntegration:
         form = CustomUserCreationForm(instance=guest_user, data=form_data)
         assert not form.is_valid()
         assert "username" in form.errors
-        assert "cannot start with 'admin'" in str(form.errors["username"])
+        assert "cannot start with &#x27;admin&#x27;" in str(form.errors["username"])
