@@ -4,6 +4,8 @@ from django.urls import include, path
 from . import views
 
 urlpatterns = [
+    # Homepage
+    path("", views.home_view, name="home"),
     path("admin/", admin.site.urls),
     # Function view decorators
     path("allow_guest_user/", views.allow_guest_user_view),
