@@ -144,7 +144,7 @@ jobs:
           echo "=== Django Server Log ==="
           cat ../django_server.log || echo "No server log found"
           echo "=== Django Debug Log ==="
-          cat ../django_debug.log || echo "No debug log found"
+          cat ../django_debug_main.log || echo "No debug log found"
           cat django_server.pid
           ps aux | grep manage.py
           exit 1
@@ -165,12 +165,12 @@ jobs:
         echo "=== Collecting log files ==="
         mkdir -p logs
         
-        # Copy Django debug log
-        if [ -f django_debug.log ]; then
-          cp django_debug.log logs/django_debug.log
-          echo "Django debug log copied"
+        # Copy main Django debug log
+        if [ -f django_debug_main.log ]; then
+          cp django_debug_main.log logs/django_debug_main.log
+          echo "Main Django debug log copied"
         else
-          echo "No Django debug log found"
+          echo "No main Django debug log found"
         fi
         
         # Copy Django server log
@@ -187,6 +187,19 @@ jobs:
           echo "Demo process log copied"
         else
           echo "No demo process log found"
+        fi
+        
+        # Copy request-specific logs
+        if [ -d request_logs ]; then
+          cp -r request_logs logs/
+          echo "Request-specific logs copied"
+          echo "Request logs found:"
+          ls -la request_logs/ | head -20
+          if [ $(ls request_logs/ | wc -l) -gt 20 ]; then
+            echo "... and $(( $(ls request_logs/ | wc -l) - 20 )) more files"
+          fi
+        else
+          echo "No request logs directory found"
         fi
         
         # Create a comprehensive summary log
@@ -222,6 +235,7 @@ jobs:
         - HTML Index: web_demo/index.html (comprehensive visual showcase)
         - Screenshots: $(find screenshots -name "*.png" 2>/dev/null | wc -l || echo "0") files
         - Videos: $(find videos -name "*.webm" 2>/dev/null | wc -l || echo "0") files
+        - Request Logs: $(find request_logs -name "*.log" 2>/dev/null | wc -l || echo "0") files
         
         Screenshots Generated:
         $(find screenshots -name "*.png" 2>/dev/null | sort || echo "No screenshots found")
@@ -229,9 +243,45 @@ jobs:
         Videos Generated:
         $(find videos -name "*.webm" 2>/dev/null | sort || echo "No videos found")
         
-        Log Files:
-        $(find logs -name "*.log" 2>/dev/null | sort || echo "No log files found")
+        Request-Specific Logs Generated:
+        $(find request_logs -name "*.log" 2>/dev/null | sort || echo "No request logs found")
+        
+        General Log Files:
+        $(find logs -name "*.log" -not -path "logs/request_logs/*" 2>/dev/null | sort || echo "No general log files found")
         EOF
+        
+        # Create an index of request logs for easier navigation
+        if [ -d request_logs ]; then
+          cat > logs/request_logs_index.md << 'REQEOF'
+        # Request-Specific Debug Logs Index
+        
+        This directory contains separate debug log files for each HTTP request made during the demonstration.
+        Each log file is named using the pattern: `{request_id}_{user_type}_{url_path}.log`
+        
+        ## File Naming Convention
+        - **request_id**: Sequential request identifier (req_001, req_002, etc.)
+        - **user_type**: Type of user making the request (anonymous, guest, admin)
+        - **url_path**: The URL path being accessed (with slashes replaced by underscores)
+        
+        ## Example Files
+        REQEOF
+          
+          echo "" >> logs/request_logs_index.md
+          echo "## Available Request Logs" >> logs/request_logs_index.md
+          echo "" >> logs/request_logs_index.md
+          if [ -d request_logs ]; then
+            for log_file in $(ls request_logs/*.log 2>/dev/null | sort); do
+              filename=$(basename "$log_file")
+              echo "- \`$filename\`" >> logs/request_logs_index.md
+            done
+          fi
+          
+          echo "" >> logs/request_logs_index.md
+          echo "## How to Use" >> logs/request_logs_index.md
+          echo "1. Find the request you're interested in by URL path and user type" >> logs/request_logs_index.md
+          echo "2. Open the corresponding log file to see detailed Django debug information" >> logs/request_logs_index.md
+          echo "3. Each log includes SQL queries, middleware processing, view execution, and template rendering" >> logs/request_logs_index.md
+        fi
         
         echo "All log files collected in logs/ directory"
         ls -la logs/ || echo "No logs directory found"
@@ -305,7 +355,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: django-guest-user-comprehensive-logs
+        name: django-guest-user-debug-logs
         path: logs/
         retention-days: 30
 
@@ -330,9 +380,22 @@ jobs:
         fi
         
         echo ""
-        echo "=== LOG FILES ==="
+        echo "=== DEBUG LOGS SUMMARY ==="
         if [ -d logs ]; then
+          echo "📋 Debug logs archive created: django-guest-user-debug-logs"
+          echo "📄 Main log: logs/django_debug_main.log"
+          echo "📄 Request logs index: logs/request_logs_index.md"
+          echo ""
+          echo "Log files:"
           ls -la logs/
+          if [ -d logs/request_logs ]; then
+            echo ""
+            echo "Request-specific logs (first 10):"
+            ls logs/request_logs/ | head -10
+            if [ $(ls logs/request_logs/ | wc -l) -gt 10 ]; then
+              echo "... and $(( $(ls logs/request_logs/ | wc -l) - 10 )) more request log files"
+            fi
+          fi
         else
           echo "No logs directory found"
         fi
