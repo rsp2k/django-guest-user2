@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile - Django Guest User Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2.2em;
+            font-weight: 700;
+        }
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 0.9em;
+            margin-top: 10px;
+            display: inline-block;
+        }
+        .nav-link:hover {
+            color: white;
+        }
+        .profile-content {
+            padding: 40px;
+        }
+        .user-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .user-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            color: white;
+            margin: 0 auto 20px auto;
+        }
+        .user-status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+        .user-status.anonymous {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .user-status.guest {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #81ecec;
+        }
+        .user-status.regular {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #00b894;
+        }
+        .user-status.admin {
+            background: #e2e3f1;
+            color: #6c5ce7;
+            border: 1px solid #a29bfe;
+        }
+        .profile-info {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        .profile-info h3 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 8px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #6c757d;
+        }
+        .info-value {
+            color: #495057;
+        }
+        .actions {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 25px;
+        }
+        .actions h3 {
+            margin: 0 0 15px 0;
+            color: #495057;
+        }
+        .action-button {
+            display: inline-block;
+            background: #4299e1;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            margin: 5px 10px 5px 0;
+            transition: background 0.3s ease;
+        }
+        .action-button:hover {
+            background: #3182ce;
+        }
+        .action-button.convert {
+            background: #38b2ac;
+        }
+        .action-button.convert:hover {
+            background: #319795;
+        }
+        .action-button.admin {
+            background: #9f7aea;
+        }
+        .action-button.admin:hover {
+            background: #805ad5;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 25px;
+            color: #856404;
+        }
+        .info-box {
+            background: #e6fffa;
+            border: 1px solid #81e6d9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 25px;
+            color: #234e52;
+        }
+        .session-info {
+            font-size: 0.9em;
+            color: #6c757d;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        @media (max-width: 768px) {
+            .header {
+                padding: 25px 20px;
+            }
+            .header h1 {
+                font-size: 1.8em;
+            }
+            .profile-content {
+                padding: 25px 20px;
+            }
+            .info-row {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👤 User Profile</h1>
+            <a href="/" class="nav-link">← Back to Homepage</a>
+        </div>
+        
+        <div class="profile-content">
+            {% load guest_user_tags %}
+            
+            <div class="user-card">
+                <div class="user-avatar">
+                    {% if user.is_authenticated %}
+                        {% if user|is_guest_user %}👥{% elif user.is_superuser %}⚡{% else %}👤{% endif %}
+                    {% else %}❓{% endif %}
+                </div>
+                
+                {% if user.is_authenticated %}
+                    {% if user|is_guest_user %}
+                        <div class="user-status guest">Guest User</div>
+                        <h2>Welcome, Guest!</h2>
+                        <p>You have a temporary guest account</p>
+                    {% elif user.is_superuser %}
+                        <div class="user-status admin">Administrator</div>
+                        <h2>Welcome, {{ user.get_full_name|default:user.username }}!</h2>
+                        <p>You have administrative privileges</p>
+                    {% else %}
+                        <div class="user-status regular">Regular User</div>
+                        <h2>Welcome, {{ user.get_full_name|default:user.username }}!</h2>
+                        <p>You have a registered account</p>
+                    {% endif %}
+                {% else %}
+                    <div class="user-status anonymous">Anonymous</div>
+                    <h2>Welcome, Visitor!</h2>
+                    <p>You are not logged in</p>
+                {% endif %}
+            </div>
+
+            {% if not user.is_authenticated %}
+                <div class="warning-box">
+                    <strong>⚠️ Anonymous User:</strong> You are not logged in. Some features may be limited. 
+                    Visit any guest-enabled page to automatically get a temporary guest account.
+                </div>
+            {% endif %}
+
+            {% if user.is_authenticated and user|is_guest_user %}
+                <div class="info-box">
+                    <strong>💡 Guest Account:</strong> This is a temporary account that was automatically created for you. 
+                    You can convert it to a permanent account to keep your data and preferences.
+                </div>
+            {% endif %}
+
+            <div class="profile-info">
+                <h3>📋 Account Information</h3>
+                {% if user.is_authenticated %}
+                    <div class="info-row">
+                        <span class="info-label">Username:</span>
+                        <span class="info-value">{{ user.username }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value">{{ user.email|default:"Not provided" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Full Name:</span>
+                        <span class="info-value">{{ user.get_full_name|default:"Not provided" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">User ID:</span>
+                        <span class="info-value">{{ user.id }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Account Type:</span>
+                        <span class="info-value">
+                            {% if user|is_guest_user %}
+                                Guest User (Temporary)
+                            {% elif user.is_superuser %}
+                                Administrator
+                            {% elif user.is_staff %}
+                                Staff Member
+                            {% else %}
+                                Regular User
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Member Since:</span>
+                        <span class="info-value">{{ user.date_joined|date:"F d, Y" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Last Login:</span>
+                        <span class="info-value">{{ user.last_login|date:"F d, Y g:i A"|default:"Never" }}</span>
+                    </div>
+                    {% if user|is_guest_user %}
+                        <div class="info-row">
+                            <span class="info-label">Guest Session:</span>
+                            <span class="info-value">Active (Temporary Account)</span>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="info-row">
+                        <span class="info-label">Status:</span>
+                        <span class="info-value">Not logged in</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Session:</span>
+                        <span class="info-value">Anonymous browsing</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="profile-info">
+                <h3>🔒 Permissions & Access</h3>
+                <div class="info-row">
+                    <span class="info-label">Can access guest views:</span>
+                    <span class="info-value">
+                        {% if user.is_authenticated %}✅ Yes{% else %}❌ No (will auto-create guest){% endif %}
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Can access admin:</span>
+                    <span class="info-value">
+                        {% if user.is_superuser %}✅ Yes (Administrator){% elif user.is_staff %}⚠️ Limited (Staff){% else %}❌ No{% endif %}
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Account persistence:</span>
+                    <span class="info-value">
+                        {% if not user.is_authenticated %}❌ None (Anonymous)
+                        {% elif user|is_guest_user %}⚠️ Temporary (Guest)
+                        {% else %}✅ Permanent{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <div class="actions">
+                <h3>🚀 Available Actions</h3>
+                {% if not user.is_authenticated %}
+                    <a href="/guest_user_required/" class="action-button">Create Guest Account</a>
+                    <a href="/admin/login/" class="action-button admin">Admin Login</a>
+                {% elif user|is_guest_user %}
+                    <a href="/convert/" class="action-button convert">Convert to Regular Account</a>
+                    <a href="/allow_guest_user/" class="action-button">Guest-Enabled View</a>
+                {% else %}
+                    {% if user.is_superuser %}
+                        <a href="/admin/" class="action-button admin">Django Admin</a>
+                    {% endif %}
+                    <a href="/regular_user_required/" class="action-button">Regular User View</a>
+                    <a href="/allow_guest_user/" class="action-button">Guest-Enabled View</a>
+                {% endif %}
+                <a href="/" class="action-button">Homepage</a>
+            </div>
+
+            {% if user.is_authenticated %}
+                <div class="profile-info">
+                    <h3>🔧 Technical Details</h3>
+                    <div class="session-info">
+                        <strong>Django User Object:</strong><br>
+                        User ID: {{ user.id }}<br>
+                        Username: {{ user.username }}<br>
+                        Is Active: {{ user.is_active }}<br>
+                        Is Staff: {{ user.is_staff }}<br>
+                        Is Superuser: {{ user.is_superuser }}<br>
+                        {% if user|is_guest_user %}Is Guest: True{% else %}Is Guest: False{% endif %}<br>
+                        Session Key: {{ request.session.session_key|default:"Not available" }}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
