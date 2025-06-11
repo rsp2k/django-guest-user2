@@ -1,6 +1,7 @@
 """
 Tests for guest_user management commands.
 """
+
 from datetime import timedelta
 from io import StringIO
 
