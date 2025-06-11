@@ -65,8 +65,8 @@ def login_admin_user(context, username, password):
         page.wait_for_selector('h1:has-text("Django administration")', timeout=10000)
         logger.info("Admin login successful!")
         return page
-    except:
-        logger.error("Admin login failed")
+    except Exception as e:
+        logger.error(f"Admin login failed: {e}")
         return None
 
 
@@ -77,10 +77,10 @@ def capture_url_with_user_type(context, url_info, admin_credentials=None):
     url_path = url_info["path"]
     name = url_info["name"]
     title = url_info["title"]
-    description = url_info["description"]
+    # Remove unused variables that were causing F841 errors
     user_type = url_info["user_type"]
     interactive = url_info.get("interactive", False)
-    category = url_info["category"]
+    # Remove unused variables that were causing F841 errors
 
     full_url = f"{BASE_URL}{url_path}"
 
@@ -138,7 +138,8 @@ def capture_url_with_user_type(context, url_info, admin_credentials=None):
         try:
             page_title = page.title()
             logger.info(f"Page title: {page_title}")
-        except:
+        except Exception as e:
+            logger.warning(f"Could not get page title: {e}")
             page_title = "Unknown"
 
         # Close the page to finalize video
@@ -158,8 +159,8 @@ def capture_url_with_user_type(context, url_info, admin_credentials=None):
                 try:
                     shutil.move(latest_video, new_video_path)
                     logger.info(f"Video saved as: {video_filename}")
-                except:
-                    logger.info(f"Video saved as: {os.path.basename(latest_video)}")
+                except Exception as e:
+                    logger.warning(f"Could not rename video: {e}")
                     video_filename = os.path.basename(latest_video)
 
         return {
@@ -183,15 +184,7 @@ def capture_url_with_user_type(context, url_info, admin_credentials=None):
 
 def demonstrate_conversion_form(page):
     """
-    Demonstrate
-    the
-    guest
-    user
-    to
-    regular
-    user
-    conversion
-    form.
+    Demonstrate the guest user to regular user conversion form.
     """
     try:
         logger.info("Demonstrating guest user conversion form...")
@@ -223,8 +216,7 @@ def demonstrate_conversion_form(page):
 
 
 def create_html_index(capture_results):
-    """
-    Create an HTML index page showcasing all screenshots and videos."""
+    """Create an HTML index page showcasing all screenshots and videos."""
     logger.info("Creating HTML index page...")
 
     # Group results by category
@@ -346,7 +338,7 @@ def create_html_index(capture_results):
             text-transform: uppercase;
         }}
         .user-type.anonymous {{
-            background: #ffeaa7;
+            background: #ffeca7;
             color: #e17055;
         }}
         .user-type.guest {{
@@ -393,16 +385,16 @@ def create_html_index(capture_results):
         <div class="stats">
             <h3>📊 Demo Statistics</h3>
             <p><strong>Generated:</strong> {datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")}</p>
-    <p> <strong> Total Tests: </strong> {len(capture_results)} URL / user combinations </ p>
-    <p> <strong> Successful: </strong> {len([r for r in capture_results if r['result']['success']])} captures </ p>
-    <p> <strong> Categories: </strong> {len(categories)} functional areas </ p>
-    </ div>
+            <p><strong>Total Tests:</strong> {len(capture_results)} URL / user combinations</p>
+            <p><strong>Successful:</strong> {len([r for r in capture_results if r['result']['success']])} captures</p>
+            <p><strong>Categories:</strong> {len(categories)} functional areas</p>
+        </div>
     """
     # Add categories
     for category_name, items in categories.items():
         html_content += f"""
-    <div class ="category"> 
-    <h2>🔧 {category_name} </ h2>
+        <div class="category">
+            <h2>🔧 {category_name}</h2>
 """
 
         for item in items:
@@ -413,107 +405,92 @@ def create_html_index(capture_results):
             status_text = "✅ Success" if result["success"] else "❌ Failed"
 
             html_content += f"""
-<div class ="demo-item">
-
-<div class ="demo-header">
-
-<div class ="demo-title">
-  {url_info['title']}
-<span class ="user-type {url_info['user_type']}">{url_info['user_type']}</span>
-
-<span class ="status {status_class}">{status_text}</span>
-
-</ div>
-<div class ="demo-description">{url_info['description']}</div>
-
-<div class ="meta-info">
-
-<strong> URL: </ strong> {url_info['path']} |
-<strong> User
-Type: </ strong> {url_info['user_type'].title()}
+            <div class="demo-item">
+                <div class="demo-header">
+                    <div class="demo-title">
+                        {url_info['title']}
+                        <span class="user-type {url_info['user_type']}">{url_info['user_type']}</span>
+                        <span class="status {status_class}">{status_text}</span>
+                    </div>
+                    <div class="demo-description">{url_info['description']}</div>
+                    <div class="meta-info">
+                        <strong>URL:</strong> {url_info['path']} |
+                        <strong>User Type:</strong> {url_info['user_type'].title()}
 """
 
             if (
                 result["current_url"]
                 and result["current_url"] != f"{BASE_URL}{url_info['path']}"
             ):
-                html_content += f""" | <strong> Redirected
-to: </ strong> {result['current_url']}
+                html_content += f""" | <strong>Redirected to:</strong> {result['current_url']}
 """
 
             html_content += """
-</ div>
-</ div>
+                    </div>
+                </div>
 """
 
             if result["success"]:
                 html_content += """
-<div class ="demo-content">
-
-<div class ="screenshot-section">
-
-<h4>📸 Screenshot </ h4>
+                <div class="demo-content">
+                    <div class="screenshot-section">
+                        <h4>📸 Screenshot</h4>
 """
                 if result["screenshot"]:
                     html_content += f"""
-<img src ="../{OUTPUT_DIR}/{result['screenshot']}" alt="{url_info['title']} Screenshot" class="screenshot">
+                        <img src="../{OUTPUT_DIR}/{result['screenshot']}" alt="{url_info['title']} Screenshot" class="screenshot">
 """
                 else:
                     html_content += """
-<p> Screenshot
-not available < / p >
+                        <p>Screenshot not available</p>
 """
 
                 html_content += """
-</ div>
-<div class ="video-section"> 
-<h4>🎥 Video
-Demonstration </ h4>
+                    </div>
+                    <div class="video-section">
+                        <h4>🎥 Video Demonstration</h4>
 """
                 if result["video"]:
                     html_content += f"""
-<video controls preload ="metadata"> < source src ="../{VIDEO_DIR}/{result['video']}" type="video/webm">
- Your browser does not support the video tag. </ video>
+                        <video controls preload="metadata">
+                            <source src="../{VIDEO_DIR}/{result['video']}" type="video/webm">
+                            Your browser does not support the video tag.
+                        </video>
 """
                 else:
                     html_content += """
-<p> Video
-not available </ p>
+                        <p>Video not available</p>
 """
 
                 html_content += """
-</ div>
-</ div>
+                    </div>
+                </div>
 """
             else:
                 html_content += """
-<div class ="demo-content">
-
-<p style ="text-align: center; color: #e17055; padding: 20px;">
-⚠️ This demonstration failed to capture.Check the logs for more details.
-</ p>
-</ div>
+                <div class="demo-content">
+                    <p style="text-align: center; color: #e17055; padding: 20px;">
+                        ⚠️ This demonstration failed to capture. Check the logs for more details.
+                    </p>
+                </div>
 """
 
             html_content += """
-</ div>
+            </div>
 """
 
         html_content += """
-< / div>
+        </div>
 """
 
-    html_content += f"""
-<div class ="footer">
-
-<p> Generated
-by django - guest - user2 automated testing workflow
-</ p>
-<p>🔗 <a href ="https://github.com/rsp2k/django-guest-user2">django-guest-user2 on GitHub</a></p>
-</ div>
-</ div>
-</ body>
-</ html>"""
+    html_content += """
+        <div class="footer">
+            <p>Generated by django-guest-user2 automated testing workflow</p>
+            <p>🔧 <a href="https://github.com/rsp2k/django-guest-user2">django-guest-user2 on GitHub</a></p>
+        </div>
+    </div>
+</body>
+</html>"""
 
     # Write HTML file
     html_path = os.path.join(WEB_DIR, "index.html")
@@ -565,7 +542,7 @@ def main():
         html_path = create_html_index(capture_results)
 
         # Print comprehensive summary
-        logger.info(" " + "=" * 80)
+        logger.info("  " + "=" * 80)
         logger.info("COMPREHENSIVE GUEST USER DEMO SUMMARY")
         logger.info("=" * 80)
         successful = sum(1 for item in capture_results if item["result"]["success"])
@@ -574,10 +551,7 @@ def main():
             f"Successfully captured: {successful}/{total} URL/user combinations"
         )
 
-        logger.info(
-            "\
-Results by user type:"
-        )
+        logger.info("Results by user type:")
         for user_type in ["anonymous", "guest", "admin"]:
             user_results = [
                 item
@@ -604,7 +578,7 @@ Results by user type:"
             logger.info(f"  {category}: {cat_successful}/{len(items)} successful")
 
         # List generated files
-        logger.info(" " + "=" * 80)
+        logger.info("  " + "=" * 80)
         logger.info("GENERATED FILES")
         logger.info("=" * 80)
 
@@ -619,7 +593,7 @@ Results by user type:"
             else []
         )
 
-        logger.info(f"📄 HTML Index: {html_path}")
+        logger.info("🔄 HTML Index: {html_path}")
         logger.info(f"📸 Screenshots ({len(screenshot_files)}):")
         for f in sorted(screenshot_files):
             logger.info(f"    {f}")
@@ -634,12 +608,9 @@ Results by user type:"
         elif successful < total:
             logger.warning(f"⚠️  WARNING: {total - successful} URLs failed to capture")
         else:
-            logger.info(f"🎉 All URLs captured successfully!")
+            logger.info("🎉 All URLs captured successfully!")
 
-        logger.info(
-            f"\
-🔖 View the complete demo at: {html_path}"
-        )
+        logger.info("🔗 View the complete demo at: {html_path}")
         logger.info(f"Demo completed at {datetime.now()}")
 
 
