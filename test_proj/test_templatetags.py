@@ -5,7 +5,6 @@ Tests for guest_user template tags.
 import pytest
 from django.contrib.auth import get_user_model
 from django.template import Context, Template, TemplateSyntaxError
-from django.template.loader import get_template
 from django.test import RequestFactory
 from guest_user.functions import get_guest_model
 
