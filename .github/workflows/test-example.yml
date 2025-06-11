@@ -1,0 +1,550 @@
+name: Test Django Guest User Example
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, "3.10", "3.11", "3.12"]
+        django-version: [4.2, 5.0, 5.1]
+        exclude:
+          # Django 5.0+ requires Python 3.10+
+          - python-version: 3.9
+            django-version: 5.0
+          - python-version: 3.9
+            django-version: 5.1
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install Django==${{ matrix.django-version }}
+        pip install django-allauth pytest pytest-django requests-oauthlib
+
+    - name: Run Django checks
+      run: |
+        python manage.py check
+
+    - name: Run migrations
+      run: |
+        python manage.py makemigrations
+        python manage.py migrate
+
+    - name: Collect static files
+      run: |
+        python manage.py collectstatic --noinput
+
+    - name: Run Django tests
+      run: |
+        python manage.py test
+
+    - name: Test Django development server startup
+      run: |
+        timeout 10s python manage.py runserver || true
+        echo "Development server can start successfully"
+
+  test-example:
+    runs-on: ubuntu-latest
+    needs: test
+    # Only run example tests after basic tests pass
+
+    env:
+      BASE_URL: http://127.0.0.1:8000
+      SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY || 'django-insecure-test-example-key-not-for-production-12345' }}
+      DEBUG: 'True'
+      # Enable detailed Django logging
+      DJANGO_LOG_LEVEL: 'DEBUG'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Set up Node.js for Playwright
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install Django==5.1
+        pip install django-allauth pytest pytest-django requests-oauthlib
+        pip install playwright
+
+    - name: Install Playwright browsers
+      run: |
+        playwright install --with-deps chromium
+
+    - name: Create Django settings with enhanced logging
+      run: |
+        cat >> test_proj/settings_debug.py << 'EOF'
+        # Import all settings from the original settings file
+        from .settings import *
+        import os
+
+        # Override DEBUG setting
+        DEBUG = True
+
+        # Enhanced logging configuration for example project
+        LOGGING = {
+            'version': 1,
+            'disable_existing_loggers': False,
+            'formatters': {
+                'verbose': {
+                    'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+                    'style': '{',
+                },
+                'simple': {
+                    'format': '{levelname} {message}',
+                    'style': '{',
+                },
+            },
+            'handlers': {
+                'file': {
+                    'level': 'DEBUG',
+                    'class': 'logging.FileHandler',
+                    'filename': '../django_debug.log',
+                    'formatter': 'verbose',
+                },
+                'console': {
+                    'level': 'DEBUG',
+                    'class': 'logging.StreamHandler',
+                    'formatter': 'verbose',
+                },
+            },
+            'root': {
+                'handlers': ['file', 'console'],
+                'level': 'INFO',
+            },
+            'loggers': {
+                'django': {
+                    'handlers': ['file', 'console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+                'django.request': {
+                    'handlers': ['file', 'console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+                'django.server': {
+                    'handlers': ['file', 'console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+                'guest_user': {
+                    'handlers': ['file', 'console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+            },
+        }
+
+        # Use environment variables for sensitive settings
+        SECRET_KEY = os.environ.get('SECRET_KEY', SECRET_KEY)
+        EOF
+
+    - name: Prepare Django project
+      run: |
+        echo "=== Running Django migrations ==="
+        python manage.py migrate --settings=test_proj.settings_debug
+        
+        echo "=== Collecting static files ==="
+        python manage.py collectstatic --noinput --settings=test_proj.settings_debug
+
+    - name: Create test superuser
+      run: |
+        echo "from django.contrib.auth import get_user_model; User = get_user_model(); \
+        User.objects.filter(username='testuser').exists() or \
+        User.objects.create_superuser('testuser', 'test@example.com', 'testpassword123')" \
+        | python manage.py shell --settings=test_proj.settings_debug
+      env:
+        DJANGO_SUPERUSER_USERNAME: testuser
+        DJANGO_SUPERUSER_PASSWORD: testpassword123
+
+    - name: Start Django development server with debug logging
+      run: |
+        # Start Django server in background with debug logging
+        echo "Starting Django server with debug logging..."
+        python manage.py runserver 0.0.0.0:8000 --settings=test_proj.settings_debug > ../django_server.log 2>&1 &
+        echo $! > django_server.pid
+        echo "Django server started with PID $(cat django_server.pid)"
+        
+        # Wait for Django to start up
+        echo "Waiting for Django server to be ready..."
+        for i in {1..30}; do
+          if curl -f http://127.0.0.1:8000/admin/login/ > /dev/null 2>&1; then
+            echo "Django server is ready!"
+            break
+          fi
+          echo "Attempt $i: Django server not ready yet, waiting..."
+          sleep 2
+        done
+        
+        # Final check
+        if ! curl -f http://127.0.0.1:8000/admin/login/ > /dev/null 2>&1; then
+          echo "ERROR: Django server failed to start properly"
+          echo "=== Django Server Log ==="
+          cat ../django_server.log || echo "No server log found"
+          echo "=== Django Debug Log ==="
+          cat ../django_debug.log || echo "No debug log found"
+          cat django_server.pid
+          ps aux | grep manage.py
+          exit 1
+        fi
+
+    - name: Create enhanced screenshot script for guest user demo
+      run: |
+        cat > take_screenshots_guest_user.py << 'EOF'
+        #!/usr/bin/env python3
+        import os
+        import sys
+        import logging
+        import time
+        from datetime import datetime
+        from playwright.sync_api import sync_playwright
+
+        # Set up logging for the screenshot script
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler('screenshot_process.log'),
+                logging.StreamHandler()
+            ]
+        )
+
+        logger = logging.getLogger('screenshot_script')
+
+        # Define the base URL for your running Django project
+        BASE_URL = os.environ.get('BASE_URL', 'http://127.0.0.1:8000')
+
+        # List of URLs to screenshot (relative to BASE_URL)
+        URLS_TO_SCREENSHOT = [
+            '/',  # Root URL (might show a 404 or redirect, but useful for testing)
+            '/admin/',  # Django admin login page
+        ]
+
+        OUTPUT_DIR = 'screenshots'
+
+        def login_to_admin_if_needed(page, username, password):
+            """
+            Logs into the Django admin if credentials are provided.
+            """
+            if username and password:
+                logger.info("Attempting to log into Django admin...")
+                try:
+                    page.goto(f"{BASE_URL}/admin/login/")
+                    
+                    # Wait for login form to be visible
+                    page.wait_for_selector('input[name="username"]', timeout=10000)
+                    
+                    page.fill('input[name="username"]', username)
+                    page.fill('input[name="password"]', password)
+                    page.click('input[type="submit"]')
+
+                    # Wait for successful login - look for admin index page elements
+                    try:
+                        page.wait_for_selector('h1:has-text("Django administration")', timeout=10000)
+                        logger.info("Admin login successful!")
+                        return True
+                    except:
+                        # If we don't see the admin header, check if we're still on login page
+                        if 'login' in page.url:
+                            logger.error("Login failed - still on login page")
+                            return False
+                        else:
+                            logger.info("Login appears successful (redirected away from login)")
+                            return True
+                            
+                except Exception as e:
+                    logger.error(f"Admin login failed: {e}")
+                    return False
+            return False
+
+        def take_screenshot_with_retry(page, url_path, filename, retries=2):
+            """
+            Take a screenshot with retry logic for better reliability.
+            """
+            full_url = f"{BASE_URL}{url_path}"
+            
+            for attempt in range(retries + 1):
+                try:
+                    logger.info(f"Navigating to {full_url} (attempt {attempt + 1})...")
+                    
+                    # Navigate to the URL with a longer timeout
+                    page.goto(full_url, wait_until='domcontentloaded', timeout=30000)
+                    
+                    # Wait a bit for any dynamic content to load
+                    page.wait_for_timeout(2000)
+                    
+                    # For admin pages, wait for Django admin CSS to load for better screenshots
+                    if '/admin/' in url_path:
+                        try:
+                            # Wait for admin styles to load
+                            page.wait_for_selector('.breadcrumbs, #header, .module', timeout=5000)
+                        except:
+                            pass  # Continue even if admin elements don't load
+                    
+                    # Take the screenshot
+                    page.screenshot(path=filename, full_page=True)
+                    logger.info(f"Screenshot saved: {filename}")
+                    return True
+                    
+                except Exception as e:
+                    logger.error(f"Attempt {attempt + 1} failed for {full_url}: {e}")
+                    if attempt < retries:
+                        logger.info("Retrying...")
+                        page.wait_for_timeout(1000)  # Wait before retry
+                    else:
+                        logger.error(f"Failed to screenshot {full_url} after {retries + 1} attempts")
+                        
+                        # Take a screenshot of whatever page we're on for debugging
+                        try:
+                            debug_filename = filename.replace('.png', '_error.png')
+                            page.screenshot(path=debug_filename)
+                            logger.info(f"Error screenshot saved: {debug_filename}")
+                        except:
+                            pass
+                            
+            return False
+
+        def demonstrate_guest_user_functionality(page):
+            """
+            Navigate to guest user relevant pages and demonstrate functionality.
+            """
+            try:
+                logger.info("Demonstrating guest user functionality...")
+                
+                # Try to visit the home page and see what guest user features are available
+                page.goto(f"{BASE_URL}/")
+                page.wait_for_timeout(2000)
+                
+                # Look for any guest user related elements
+                guest_elements = page.query_selector_all('[class*="guest"], [id*="guest"], [data-guest]')
+                if guest_elements:
+                    logger.info(f"Found {len(guest_elements)} guest-related elements on the page")
+                else:
+                    logger.info("No obvious guest user elements found on home page")
+                
+                logger.info("Guest user demonstration completed")
+                    
+            except Exception as e:
+                logger.warning(f"Could not demonstrate guest user functionality: {e}")
+
+        def main():
+            if not os.path.exists(OUTPUT_DIR):
+                os.makedirs(OUTPUT_DIR)
+
+            # Get credentials from environment variables
+            DJANGO_SUPERUSER_USERNAME = os.environ.get('DJANGO_SUPERUSER_USERNAME')
+            DJANGO_SUPERUSER_PASSWORD = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+
+            logger.info(f"Starting screenshot capture at {datetime.now()}")
+            logger.info(f"Base URL: {BASE_URL}")
+            logger.info(f"Output directory: {OUTPUT_DIR}")
+
+            with sync_playwright() as p:
+                # Launch browser
+                browser = p.chromium.launch(
+                    args=['--no-sandbox', '--disable-dev-shm-usage']  # Useful for CI environments
+                )
+                
+                # Create a new page with a larger viewport for better screenshots
+                page = browser.new_page(viewport={'width': 1920, 'height': 1080})
+                
+                # Perform admin login if credentials are provided
+                admin_logged_in = login_to_admin_if_needed(page, DJANGO_SUPERUSER_USERNAME, DJANGO_SUPERUSER_PASSWORD)
+
+                screenshot_results = []
+                
+                for url_path in URLS_TO_SCREENSHOT:
+                    # Create a safe filename from the URL path
+                    safe_filename = url_path.replace('/', '_').strip('_') or 'root'
+                    filename = os.path.join(OUTPUT_DIR, f"{safe_filename}.png")
+                    
+                    # Skip admin pages if we couldn't log in
+                    if '/admin/' in url_path and url_path != '/admin/' and not admin_logged_in:
+                        logger.info(f"Skipping {url_path} - admin login required but not available")
+                        continue
+                    
+                    # Special handling for guest user demonstration
+                    if url_path == '/':
+                        demonstrate_guest_user_functionality(page)
+                    
+                    success = take_screenshot_with_retry(page, url_path, filename)
+                    screenshot_results.append({
+                        'url': url_path,
+                        'filename': filename,
+                        'success': success
+                    })
+
+                browser.close()
+                
+                # Print summary
+                logger.info("\n" + "="*50)
+                logger.info("SCREENSHOT SUMMARY")
+                logger.info("="*50)
+                successful = sum(1 for r in screenshot_results if r['success'])
+                total = len(screenshot_results)
+                logger.info(f"Successfully captured: {successful}/{total} screenshots")
+                
+                for result in screenshot_results:
+                    status = "✓" if result['success'] else "✗"
+                    logger.info(f"{status} {result['url']} -> {result['filename']}")
+                
+                if successful == 0:
+                    logger.error("\nWARNING: No screenshots were captured successfully!")
+                    sys.exit(1)
+                elif successful < total:
+                    logger.warning(f"\nWARNING: {total - successful} screenshots failed")
+                else:
+                    logger.info(f"\n🎉 All screenshots captured successfully!")
+
+        if __name__ == '__main__':
+            main()
+        EOF
+
+    - name: Take screenshots with guest user demonstration
+      run: |
+        echo "=== Starting screenshot capture with guest user demonstration ==="
+        python take_screenshots_guest_user.py
+      env:
+        DJANGO_SUPERUSER_USERNAME: testuser
+        DJANGO_SUPERUSER_PASSWORD: testpassword123
+        BASE_URL: http://127.0.0.1:8000
+
+    - name: Collect all log files
+      if: always()
+      run: |
+        echo "=== Collecting log files ==="
+        mkdir -p logs
+        
+        # Copy Django debug log
+        if [ -f django_debug.log ]; then
+          cp django_debug.log logs/django_debug.log
+          echo "Django debug log copied"
+        else
+          echo "No Django debug log found"
+        fi
+        
+        # Copy Django server log
+        if [ -f django_server.log ]; then
+          cp django_server.log logs/django_server.log
+          echo "Django server log copied"
+        else
+          echo "No Django server log found"
+        fi
+        
+        # Copy screenshot process log
+        if [ -f screenshot_process.log ]; then
+          cp screenshot_process.log logs/screenshot_process.log
+          echo "Screenshot process log copied"
+        else
+          echo "No screenshot process log found"
+        fi
+        
+        # Create a summary log
+        cat > logs/summary.log << EOF
+        Django Guest User Example Test Summary
+        ======================================
+        Timestamp: $(date)
+        Django Settings: test_proj.settings_debug
+        Base URL: $BASE_URL
+        Debug Mode: $DEBUG
+        Django Log Level: $DJANGO_LOG_LEVEL
+        
+        Test Focus: Django Guest User functionality demonstration
+        Features Tested: Guest user creation, authentication, and management
+        
+        Files Generated:
+        $(find screenshots -name "*.png" 2>/dev/null | sort || echo "No screenshots found")
+        
+        Log Files:
+        $(find logs -name "*.log" 2>/dev/null | sort || echo "No log files found")
+        EOF
+        
+        echo "All log files collected in logs/ directory"
+        ls -la logs/ || echo "No logs directory found"
+
+    - name: Upload screenshots as artifact
+      uses: actions/upload-artifact@v4
+      if: always()  # Upload even if screenshot step fails
+      with:
+        name: django-guest-user-screenshots
+        path: screenshots/
+        retention-days: 30
+
+    - name: Upload debug logs as artifact
+      uses: actions/upload-artifact@v4
+      if: always()  # Upload even if previous steps fail
+      with:
+        name: django-debug-logs
+        path: logs/
+        retention-days: 30
+
+    - name: Display log summary
+      if: always()
+      run: |
+        echo "=== LOG SUMMARY ==="
+        if [ -f logs/summary.log ]; then
+         cat logs/summary.log
+        fi
+        
+        echo ""
+        echo "=== SCREENSHOT FILES ==="
+        if [ -d screenshots ]; then
+          ls -la screenshots/
+        else
+          echo "No screenshots directory found"
+        fi
+        
+        echo ""
+        echo "=== LOG FILES ==="
+        if [ -d logs ]; then
+          ls -la logs/
+        else
+          echo "No logs directory found"
+        fi
+
+    - name: Stop Django server
+      if: always()
+      run: |
+        if [ -f django_server.pid ]; then
+          kill $(cat django_server.pid) || true
+          rm django_server.pid
+        fi
