@@ -236,28 +236,69 @@ jobs:
         echo "All log files collected in logs/ directory"
         ls -la logs/ || echo "No logs directory found"
 
-    - name: Upload screenshots as artifact
-      uses: actions/upload-artifact@v4
+    - name: Create comprehensive demo archive
       if: always()
-      with:
-        name: django-guest-user-comprehensive-screenshots
-        path: screenshots/
-        retention-days: 30
+      run: |
+        echo "=== Creating comprehensive demo archive ==="
+        mkdir -p demo_archive
+        
+        # Copy all demo content to archive directory
+        if [ -d screenshots ]; then
+          cp -r screenshots demo_archive/
+          echo "Screenshots copied to archive"
+        fi
+        
+        if [ -d videos ]; then
+          cp -r videos demo_archive/
+          echo "Videos copied to archive"
+        fi
+        
+        if [ -d web_demo ]; then
+          cp -r web_demo demo_archive/
+          echo "Web demo copied to archive"
+        fi
+        
+        # Create a README for the archive
+        cat > demo_archive/README.md << 'EOF'
+        # Django Guest User Comprehensive Demo Archive
+        
+        This archive contains a complete visual demonstration of django-guest-user2 functionality.
+        
+        ## Contents
+        
+        - **web_demo/index.html** - Main HTML index showcasing all demonstrations
+        - **screenshots/** - PNG screenshots of each URL/user combination
+        - **videos/** - WebM video recordings of browser interactions
+        
+        ## How to View
+        
+        1. Extract this archive
+        2. Open `web_demo/index.html` in your web browser
+        3. Browse through the categorized demonstrations
+        
+        ## Test Coverage
+        
+        This demo covers:
+        - Guest user automatic creation
+        - Permission-based access control
+        - Decorator-based views (@allow_guest_user, @guest_user_required, @regular_user_required)
+        - Mixin-based views (AllowGuestUserMixin, GuestUserRequiredMixin, RegularUserRequiredMixin)
+        - Guest user to regular user conversion workflow
+        - Admin interface integration
+        
+        Generated: $(date)
+        Repository: https://github.com/rsp2k/django-guest-user2
+        EOF
+        
+        echo "Archive structure:"
+        find demo_archive -type f | sort
 
-    - name: Upload videos as artifact
+    - name: Upload comprehensive demo archive
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: django-guest-user-comprehensive-videos
-        path: videos/
-        retention-days: 30
-
-    - name: Upload web demo as artifact
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: django-guest-user-web-demo
-        path: web_demo/
+        name: django-guest-user-comprehensive-demo
+        path: demo_archive/
         retention-days: 30
 
     - name: Upload debug logs as artifact
@@ -277,28 +318,15 @@ jobs:
         fi
         
         echo ""
-        echo "=== WEB DEMO ==="
-        if [ -d web_demo ]; then
-          echo "📄 HTML Index: web_demo/index.html"
-          ls -la web_demo/
+        echo "=== DEMO ARCHIVE CONTENTS ==="
+        if [ -d demo_archive ]; then
+          echo "📦 Complete demo archive created: django-guest-user-comprehensive-demo"
+          echo "📄 Main entry point: demo_archive/web_demo/index.html"
+          echo ""
+          echo "Archive contents:"
+          find demo_archive -type f | sort
         else
-          echo "No web demo directory found"
-        fi
-        
-        echo ""
-        echo "=== SCREENSHOT FILES ==="
-        if [ -d screenshots ]; then
-          ls -la screenshots/
-        else
-          echo "No screenshots directory found"
-        fi
-        
-        echo ""
-        echo "=== VIDEO FILES ==="
-        if [ -d videos ]; then
-          ls -la videos/
-        else
-          echo "No videos directory found"
+          echo "No demo archive created"
         fi
         
         echo ""
