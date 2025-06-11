@@ -1,8 +1,14 @@
 Project Background
 ==================
 
-This project is a maintained fork of the original `julianwachholz/django-guest-user <https://github.com/julianwachholz/django-guest-user>`_
-repository, which appears to be unmaintained (last commit in early 2023). This fork provides:
+This project (``django-guest-user2``) is a maintained fork of the original 
+`julianwachholz/django-guest-user <https://github.com/julianwachholz/django-guest-user>`_
+repository, which appears to be unmaintained (last commit in early 2023). 
+
+The "2" suffix distinguishes this maintained version from the original, making it 
+clear to users that this is an active fork with ongoing development.
+
+This fork provides:
 
 - 🐛 **Bug fixes** and improvements
 - 📦 **Dependency updates** including Django 5.x support
@@ -36,8 +42,15 @@ How to install
 Install the package from PyPI with your favorite package manager::
 
    pip install django-guest-user
-   # or similar, e.g.
-   poetry add django-guest-user
+
+.. note::
+
+   The PyPI package name remains ``django-guest-user`` for compatibility, 
+   but the maintained source is now at ``rsp2k/django-guest-user2``.
+
+Alternatively, install directly from the maintained fork::
+
+   pip install git+https://github.com/rsp2k/django-guest-user2.git
 
 Add the app to your :ref:`django:ref/settings:``installed_apps```
 and :ref:`django:ref/settings:``authentication_backends```:
@@ -122,10 +135,24 @@ Migrating from Original ``django-guest-user``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you're migrating from the original `julianwachholz/django-guest-user`_ repository
-to this maintained fork, the transition should be seamless:
+to this maintained fork (``django-guest-user2``), the transition should be seamless:
 
-1. **Update your requirements**: No code changes needed, just update the source repository
-2. **Version compatibility**: This fork maintains API compatibility
+1. **Update your requirements**: 
+   
+   From::
+   
+     # requirements.txt or pyproject.toml
+     django-guest-user
+   
+   To::
+   
+     # Option 1: Use PyPI (recommended for stability)
+     django-guest-user
+     
+     # Option 2: Use the maintained fork directly
+     git+https://github.com/rsp2k/django-guest-user2.git
+
+2. **No code changes needed**: API compatibility is maintained
 3. **Enhanced features**: You'll get improved Django 5.x support and better testing
 4. **Ongoing support**: Active maintenance and issue resolution
 
@@ -195,7 +222,7 @@ supported until April 2028.
 Recent Improvements
 ===================
 
-This maintained fork includes several enhancements over the original:
+This maintained fork (``django-guest-user2``) includes several enhancements over the original:
 
 **Version 0.5.5+ (This Fork)**:
 
