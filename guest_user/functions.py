@@ -61,6 +61,9 @@ def is_guest_user(user) -> bool:
     Check if the given user instance is a temporary guest.
 
     """
+    # Handle None values gracefully
+    if user is None:
+        return False
 
     if user.is_anonymous:
         return False
