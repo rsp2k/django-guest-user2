@@ -6,6 +6,8 @@ from . import views
 urlpatterns = [
     # Homepage
     path("", views.home_view, name="home"),
+    # User profile
+    path("accounts/profile/", views.profile_view, name="profile"),
     path("admin/", admin.site.urls),
     # Function view decorators
     path("allow_guest_user/", views.allow_guest_user_view),
