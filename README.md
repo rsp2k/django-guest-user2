@@ -1,11 +1,11 @@
-[![Code Lint](https://github.com/rsp2k/django-guest-user/actions/workflows/lint.yml/badge.svg)](https://github.com/rsp2k/django-guest-user/actions/workflows/lint.yml)
-[![Python Tests](https://github.com/rsp2k/django-guest-user/actions/workflows/test.yml/badge.svg)](https://github.com/rsp2k/django-guest-user/actions/workflows/test.yml)
+[![Code Lint](https://github.com/rsp2k/django-guest-user2/actions/workflows/lint.yml/badge.svg)](https://github.com/rsp2k/django-guest-user2/actions/workflows/lint.yml)
+[![Python Tests](https://github.com/rsp2k/django-guest-user2/actions/workflows/test.yml/badge.svg)](https://github.com/rsp2k/django-guest-user2/actions/workflows/test.yml)
 [![Documentation](https://readthedocs.org/projects/django-guest-user/badge/?style=flat)](https://django-guest-user.readthedocs.io)
 [![PyPI version](https://badge.fury.io/py/django-guest-user.svg)](https://badge.fury.io/py/django-guest-user)
 [![Python versions](https://img.shields.io/pypi/pyversions/django-guest-user.svg)](https://pypi.org/project/django-guest-user/)
 [![Django versions](https://img.shields.io/pypi/djversions/django-guest-user.svg)](https://pypi.org/project/django-guest-user/)
 
-# django-guest-user
+# django-guest-user2
 
 Allow visitors to interact with your site like a temporary user ("guest") without requiring registration.
 
@@ -13,7 +13,7 @@ Anonymous visitors who request a decorated page get a real temporary user object
 
 Inspired by and as an alternative for [django-lazysignup](https://github.com/danfairs/django-lazysignup) and rewritten for modern Django and Python versions.
 
-> **📋 Note**: This repository is a fork of [julianwachholz/django-guest-user](https://github.com/julianwachholz/django-guest-user), which appears to be unmaintained. This fork includes bug fixes, dependency updates, expanded Django/Python version support, and ongoing maintenance.
+> **📋 Note**: This repository (`django-guest-user2`) is a maintained fork of [julianwachholz/django-guest-user](https://github.com/julianwachholz/django-guest-user), which appears to be unmaintained. This fork includes bug fixes, dependency updates, expanded Django/Python version support, and ongoing maintenance. The "2" suffix distinguishes this maintained version from the original.
 
 ## ✨ Features
 
@@ -38,6 +38,8 @@ Install from PyPI:
 ```bash
 pip install django-guest-user
 ```
+
+> **Note**: The PyPI package name remains `django-guest-user` for compatibility, but the maintained source is now at `rsp2k/django-guest-user2`.
 
 ## ⚡ Quick Start
 
@@ -132,8 +134,8 @@ All contributions are welcome! Here's how to get started:
 1. **Fork the repository**
 2. **Set up development environment:**
    ```bash
-   git clone your-fork-url
-   cd django-guest-user
+   git clone https://github.com/your-username/django-guest-user2.git
+   cd django-guest-user2
    pip install poetry
    poetry install
    ```
@@ -161,7 +163,7 @@ This project is under **active development** with regular updates and improvemen
 
 ### Fork History
 
-This repository is a maintained fork of the original [julianwachholz/django-guest-user](https://github.com/julianwachholz/django-guest-user) project, which appears to be abandoned (last updated in early 2023). This fork provides:
+This repository (`django-guest-user2`) is a maintained fork of the original [julianwachholz/django-guest-user](https://github.com/julianwachholz/django-guest-user) project, which appears to be abandoned (last updated in early 2023). This fork provides:
 
 - ✨ **Bug fixes and improvements** 
 - 🔄 **Dependency updates** (including Django 5.x support)
@@ -186,4 +188,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Original [django-lazysignup](https://github.com/danfairs/django-lazysignup) project by Dan Fairs
 - Original [django-guest-user](https://github.com/julianwachholz/django-guest-user) project by Julian Wachholz
-- All the [contributors](https://github.com/rsp2k/django-guest-user/graphs/contributors) who have helped improve this package
+- All the [contributors](https://github.com/rsp2k/django-guest-user2/graphs/contributors) who have helped improve this package
