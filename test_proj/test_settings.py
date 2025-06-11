@@ -27,7 +27,7 @@ TEST_REQUEST_URL = "/some-url/"
 def my_name_generator_using_request(request=None):
     prefix = ""
     if request:
-        prefix = request.COOKIES['username_prefix']
+        prefix = request.COOKIES["username_prefix"]
     return f"{prefix}{TEST_USERNAME}"
 
 
@@ -43,9 +43,9 @@ def test_setting_name_generator_passing_request(settings):
 
 
 def test_setting_name_generator_using_request(settings):
-    TEST_PREFIX = 'the_prefix_'
+    TEST_PREFIX = "the_prefix_"
     request = RequestFactory().get(TEST_REQUEST_URL)
-    request.COOKIES['username_prefix'] = TEST_PREFIX
+    request.COOKIES["username_prefix"] = TEST_PREFIX
 
     settings.GUEST_USER_NAME_GENERATOR = "test_proj.test_settings.my_name_generator_using_request"
     assert GuestManager().generate_username(request=request) == f"{TEST_PREFIX}{TEST_USERNAME}"
