@@ -4,10 +4,11 @@ import logging
 from datetime import datetime
 
 # Import specific items from the main settings to avoid F403/F405 issues
-from .settings import (
+from .settings import (  # noqa: F401
     BASE_DIR,
     SECRET_KEY,
     MIDDLEWARE,
+    DATABASES,
 )
 
 # Override DEBUG setting
