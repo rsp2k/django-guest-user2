@@ -18,6 +18,12 @@ def home_view(request):
 
 
 @allow_guest_user()
+def profile_view(request):
+    """User profile page that works for all user types including anonymous."""
+    return render(request, "profile.html")
+
+
+@allow_guest_user()
 def allow_guest_user_view(request):
     return render(request, "guest.html")
 
