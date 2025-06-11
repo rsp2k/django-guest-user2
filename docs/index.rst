@@ -31,6 +31,14 @@ progress and created content using your application.
 Converting to a permanent user takes very few clicks and allows visitors to save
 their progress and don't risk to lose it once the guest users are cleaned up.
 
+.. note::
+
+   **Fork Notice**: This repository is a maintained fork of the original 
+   `julianwachholz/django-guest-user <https://github.com/julianwachholz/django-guest-user>`_
+   project, which appears to be unmaintained (last updated in early 2023). 
+   This fork provides ongoing maintenance, bug fixes, dependency updates, 
+   and expanded Django/Python version support.
+
 Key Features
 ------------
 
@@ -49,10 +57,26 @@ Compatibility
 
 Tested across **27 different combinations** to ensure compatibility and reliability.
 
-This project was largely inspired by `django-lazysignup`_ and rewritten for
-modern Django and Python versions, with enhanced features and improved reliability.
+Project History
+---------------
+
+This project builds on a strong foundation:
+
+1. **Original inspiration**: `django-lazysignup`_ by Dan Fairs
+2. **Previous iteration**: `julianwachholz/django-guest-user`_ - rewritten for modern Django/Python
+3. **Current fork**: `rsp2k/django-guest-user`_ - ongoing maintenance and improvements
 
 .. _django-lazysignup: https://github.com/danfairs/django-lazysignup
+.. _julianwachholz/django-guest-user: https://github.com/julianwachholz/django-guest-user
+.. _rsp2k/django-guest-user: https://github.com/rsp2k/django-guest-user
+
+This maintained fork provides:
+
+- ✨ **Bug fixes and improvements** 
+- 🔄 **Dependency updates** (including Django 5.x support)
+- 🧪 **Expanded testing** across more Python/Django combinations
+- 📚 **Updated documentation** 
+- 🛠️ **Ongoing maintenance** and issue resolution
 
 Quick links
 -----------
