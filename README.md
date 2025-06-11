@@ -13,6 +13,8 @@ Anonymous visitors who request a decorated page get a real temporary user object
 
 Inspired by and as an alternative for [django-lazysignup](https://github.com/danfairs/django-lazysignup) and rewritten for modern Django and Python versions.
 
+> **📋 Note**: This repository is a fork of [julianwachholz/django-guest-user](https://github.com/julianwachholz/django-guest-user), which appears to be unmaintained. This fork includes bug fixes, dependency updates, expanded Django/Python version support, and ongoing maintenance.
+
 ## ✨ Features
 
 - 🚀 **Zero-friction onboarding**: Visitors can start using your app immediately
@@ -155,13 +157,26 @@ If you're migrating from `django-lazysignup`, check our [migration guide](https:
 
 ## 📈 Development Status
 
-This project is under **active development** with regular updates and improvements. The core functionality is stable and production-ready, built upon the solid foundation of [django-lazysignup](https://github.com/danfairs/django-lazysignup).
+This project is under **active development** with regular updates and improvements. 
 
-**Recent improvements:**
+### Fork History
+
+This repository is a maintained fork of the original [julianwachholz/django-guest-user](https://github.com/julianwachholz/django-guest-user) project, which appears to be abandoned (last updated in early 2023). This fork provides:
+
+- ✨ **Bug fixes and improvements** 
+- 🔄 **Dependency updates** (including Django 5.x support)
+- 🧪 **Expanded testing** across more Python/Django combinations
+- 📚 **Updated documentation** 
+- 🛠️ **Ongoing maintenance** and issue resolution
+
+The core functionality is stable and production-ready, built upon the solid foundation of both [django-lazysignup](https://github.com/danfairs/django-lazysignup) and the original django-guest-user.
+
+**Recent improvements in this fork:**
 - ✨ Enhanced request parameter support in name generators
 - 🔧 Improved dependency management and testing
 - 📚 Updated documentation for Django 5.x
 - 🛡️ Expanded test matrix for better compatibility
+- 🐛 Fixed missing dependency issues
 
 ## 📄 License
 
@@ -170,4 +185,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - Original [django-lazysignup](https://github.com/danfairs/django-lazysignup) project by Dan Fairs
+- Original [django-guest-user](https://github.com/julianwachholz/django-guest-user) project by Julian Wachholz
 - All the [contributors](https://github.com/rsp2k/django-guest-user/graphs/contributors) who have helped improve this package
