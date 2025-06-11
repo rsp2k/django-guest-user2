@@ -1,177 +1,32 @@
-#!/usr/bin/env python3
 import os
 import sys
 import logging
-import time
 import shutil
 from datetime import datetime
 from playwright.sync_api import sync_playwright
 
+from scripts.urls_to_test import URLS_TO_TEST
+
 # Set up logging for the demo script
 logging.basicConfig(
     level=logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("demo_process.log"), logging.StreamHandler()],
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('demo_process.log'),
+        logging.StreamHandler()
+    ]
 )
 
-logger = logging.getLogger("guest_user_demo")
+logger = logging.getLogger('guest_user_demo')
 
 # Define the base URL for your running Django project
-BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8000")
+BASE_URL = os.environ.get('BASE_URL', 'http://127.0.0.1:8000')
 
-# Comprehensive URL test cases based on the django-guest-user2 URL structure
-URLS_TO_TEST = [
-    {
-        "path": "/",
-        "name": "homepage",
-        "title": "Django Guest User Demo Homepage",
-        "description": "Main homepage demonstrating django-guest-user2 functionality with navigation",
-        "user_type": "anonymous",
-        "category": "Navigation",
-    },
-    {
-        "path": "/",
-        "name": "homepage_guest",
-        "title": "Homepage (Guest User)",
-        "description": "Homepage accessed by a guest user showing dynamic user status",
-        "user_type": "guest",
-        "category": "Navigation",
-    },
-    {
-        "path": "/",
-        "name": "homepage_admin",
-        "title": "Homepage (Admin User)",
-        "description": "Homepage accessed by an admin user showing different user status",
-        "user_type": "admin",
-        "category": "Navigation",
-    },
-    {
-        "path": "/admin/",
-        "name": "admin_login",
-        "title": "Django Admin Login",
-        "description": "Django admin login page - Anonymous user should see login form",
-        "user_type": "anonymous",
-        "category": "Admin Interface",
-    },
-    {
-        "path": "/admin/",
-        "name": "admin_dashboard",
-        "title": "Django Admin Dashboard",
-        "description": "Django admin dashboard - Logged-in admin should see admin interface",
-        "user_type": "admin",
-        "requires_login": True,
-        "category": "Admin Interface",
-    },
-    {
-        "path": "/allow_guest_user/",
-        "name": "allow_guest_user_anonymous",
-        "title": "Allow Guest User (Anonymous)",
-        "description": "Allow guest user view - Anonymous user gets auto-created guest session",
-        "user_type": "anonymous",
-        "category": "Decorator Views",
-    },
-    {
-        "path": "/allow_guest_user/",
-        "name": "allow_guest_user_guest",
-        "title": "Allow Guest User (Guest)",
-        "description": "Allow guest user view - Guest user accesses normally",
-        "user_type": "guest",
-        "category": "Decorator Views",
-    },
-    {
-        "path": "/allow_guest_user/",
-        "name": "allow_guest_user_regular",
-        "title": "Allow Guest User (Regular)",
-        "description": "Allow guest user view - Regular user accesses normally",
-        "user_type": "admin",
-        "category": "Decorator Views",
-    },
-    {
-        "path": "/guest_user_required/",
-        "name": "guest_user_required_anonymous",
-        "title": "Guest User Required (Anonymous)",
-        "description": "Guest user required view - Anonymous user gets converted to guest automatically",
-        "user_type": "anonymous",
-        "category": "Decorator Views",
-    },
-    {
-        "path": "/guest_user_required/",
-        "name": "guest_user_required_guest",
-        "title": "Guest User Required (Guest)",
-        "description": "Guest user required view - Guest user accesses normally",
-        "user_type": "guest",
-        "category": "Decorator Views",
-    },
-    {
-        "path": "/regular_user_required/",
-        "name": "regular_user_required_anonymous",
-        "title": "Regular User Required (Anonymous)",
-        "description": "Regular user required view - Anonymous user should be redirected to login",
-        "user_type": "anonymous",
-        "category": "Decorator Views",
-    },
-    {
-        "path": "/regular_user_required/",
-        "name": "regular_user_required_admin",
-        "title": "Regular User Required (Admin)",
-        "description": "Regular user required view - Admin user accesses normally",
-        "user_type": "admin",
-        "category": "Decorator Views",
-    },
-    {
-        "path": "/mixin/allow_guest_user/",
-        "name": "mixin_allow_guest_user",
-        "title": "Allow Guest User Mixin",
-        "description": "Mixin-based allow guest user view - Class-based view equivalent",
-        "user_type": "guest",
-        "category": "Mixin Views",
-    },
-    {
-        "path": "/mixin/guest_user_required/",
-        "name": "mixin_guest_user_required",
-        "title": "Guest User Required Mixin",
-        "description": "Mixin-based guest user required view - Class-based view equivalent",
-        "user_type": "guest",
-        "category": "Mixin Views",
-    },
-    {
-        "path": "/mixin/regular_user_required/",
-        "name": "mixin_regular_user_required",
-        "title": "Regular User Required Mixin",
-        "description": "Mixin-based regular user required view - Class-based view equivalent",
-        "user_type": "admin",
-        "category": "Mixin Views",
-    },
-    {
-        "path": "/convert/",
-        "name": "convert_form_anonymous",
-        "title": "Convert Form (Anonymous)",
-        "description": "Guest conversion form - Anonymous user should be redirected to login first",
-        "user_type": "anonymous",
-        "category": "Conversion Workflow",
-    },
-    {
-        "path": "/convert/",
-        "name": "convert_form_guest",
-        "title": "Convert Form (Guest User)",
-        "description": "Guest conversion form - Guest user sees conversion form to become regular user",
-        "user_type": "guest",
-        "interactive": True,
-        "category": "Conversion Workflow",
-    },
-    {
-        "path": "/convert/success/",
-        "name": "convert_success",
-        "title": "Conversion Success Page",
-        "description": "Guest conversion success page - Shows after successful conversion",
-        "user_type": "guest",
-        "category": "Conversion Workflow",
-    },
-]
 
-OUTPUT_DIR = "screenshots"
-VIDEO_DIR = "videos"
-WEB_DIR = "web_demo"
+
+OUTPUT_DIR = 'screenshots'
+VIDEO_DIR = 'videos'
+WEB_DIR = 'web_demo'
 
 
 def setup_output_directories():
@@ -223,20 +78,18 @@ def capture_url_with_user_type(context, url_info, admin_credentials=None):
     """
     Capture URL with specific user type and create meaningful video filename.
     """
-    url_path = url_info["path"]
-    name = url_info["name"]
-    title = url_info["title"]
-    description = url_info["description"]
-    user_type = url_info["user_type"]
-    interactive = url_info.get("interactive", False)
-    category = url_info["category"]
+    url_path = url_info['path']
+    name = url_info['name']
+    title = url_info['title']
+    description = url_info['description']
+    user_type = url_info['user_type']
+    interactive = url_info.get('interactive', False)
+    category = url_info['category']
 
     full_url = f"{BASE_URL}{url_path}"
 
     # Create meaningful video filename
-    safe_title = (
-        title.replace(" ", "_").replace("(", "").replace(")", "").replace("/", "_")
-    )
+    safe_title = title.replace(' ', '_').replace('(', '').replace(')', '').replace('/', '_')
     video_filename = f"{name}_{safe_title}.webm"
 
     try:
@@ -246,15 +99,16 @@ def capture_url_with_user_type(context, url_info, admin_credentials=None):
         page = context.new_page()
 
         # Set up the appropriate user session on this page
-        if user_type == "guest":
-            # First visit guest_user_required to establish guest session
+        if user_type == 'guest':
+        # First visit guest_user_required to establish guest session
             page.goto(f"{BASE_URL}/guest_user_required/")
             page.wait_for_timeout(1000)
-        elif user_type == "admin" and admin_credentials:
+        elif user_type == 'admin' and admin_credentials:
             # Login as admin on this page
             page.goto(f"{BASE_URL}/admin/login/")
             page.wait_for_selector('input[name="username"]', timeout=10000)
             page.fill('input[name="username"]', admin_credentials[0])
+
             page.wait_for_timeout(300)
             page.fill('input[name="password"]', admin_credentials[1])
             page.wait_for_timeout(300)
@@ -263,11 +117,11 @@ def capture_url_with_user_type(context, url_info, admin_credentials=None):
 
         # Navigate to the target URL
         logger.info(f"Navigating to {full_url}")
-        page.goto(full_url, wait_until="domcontentloaded", timeout=30000)
+        page.goto(full_url, wait_until='domcontentloaded', timeout=30000)
         page.wait_for_timeout(3000)
 
         # Handle interactive pages
-        if interactive and url_path == "/convert/":
+        if interactive and url_path == '/convert/':
             demonstrate_conversion_form(page)
 
         # Take screenshot
@@ -293,12 +147,10 @@ def capture_url_with_user_type(context, url_info, admin_credentials=None):
         page.close()
 
         # Try to find and rename the video file with meaningful name
-        video_files = [f for f in os.listdir(VIDEO_DIR) if f.endswith(".webm")]
+        video_files = [f for f in os.listdir(VIDEO_DIR) if f.endswith('.webm')]
         if video_files:
             # Get the most recently created video file
-            latest_video = max(
-                [os.path.join(VIDEO_DIR, f) for f in video_files], key=os.path.getctime
-            )
+            latest_video = max([os.path.join(VIDEO_DIR, f) for f in video_files], key=os.path.getctime)
             new_video_path = os.path.join(VIDEO_DIR, video_filename)
 
             # Rename to meaningful name if it's not already named correctly
@@ -311,27 +163,35 @@ def capture_url_with_user_type(context, url_info, admin_credentials=None):
                     video_filename = os.path.basename(latest_video)
 
         return {
-            "success": True,
-            "screenshot": f"{name}.png",
-            "video": video_filename,
-            "current_url": current_url,
-            "page_title": page_title,
+            'success': True,
+            'screenshot': f"{name}.png",
+                            'video': video_filename,
+        'current_url': current_url,
+        'page_title': page_title
         }
 
     except Exception as e:
         logger.error(f"Failed to capture {name}: {e}")
         return {
-            "success": False,
-            "screenshot": None,
-            "video": None,
-            "current_url": None,
-            "page_title": None,
+            'success': False,
+            'screenshot': None,
+            'video': None,
+            'current_url': None,
+            'page_title': None
         }
 
 
 def demonstrate_conversion_form(page):
     """
-    Demonstrate the guest user to regular user conversion form.
+    Demonstrate
+    the
+    guest
+    user
+    to
+    regular
+    user
+    conversion
+    form.
     """
     try:
         logger.info("Demonstrating guest user conversion form...")
@@ -364,19 +224,18 @@ def demonstrate_conversion_form(page):
 
 def create_html_index(capture_results):
     """
-    Create an HTML index page showcasing all screenshots and videos.
-    """
+    Create an HTML index page showcasing all screenshots and videos. """
     logger.info("Creating HTML index page...")
 
     # Group results by category
     categories = {}
     for result in capture_results:
-        category = result["url_info"]["category"]
+        category = result['url_info']['category']
         if category not in categories:
             categories[category] = []
         categories[category].append(result)
 
-    html_content = f"""<!DOCTYPE html>
+    html_content = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -530,137 +389,144 @@ def create_html_index(capture_results):
     <div class="container">
         <h1>🎭 Django Guest User Comprehensive Demo</h1>
         <p class="subtitle">Complete visual demonstration of django-guest-user2 functionality</p>
-        
+
         <div class="stats">
             <h3>📊 Demo Statistics</h3>
             <p><strong>Generated:</strong> {datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")}</p>
-            <p><strong>Total Tests:</strong> {len(capture_results)} URL/user combinations</p>
-            <p><strong>Successful:</strong> {len([r for r in capture_results if r['result']['success']])} captures</p>
-            <p><strong>Categories:</strong> {len(categories)} functional areas</p>
-        </div>
-"""
-
+    <p> <strong> Total Tests: </strong> {len(capture_results)} URL / user combinations </ p>
+    <p> <strong> Successful: </strong> {len([r for r in capture_results if r['result']['success']])} captures </ p>
+    <p> <strong> Categories: </strong> {len(categories)} functional areas </ p>
+    </ div>
+    '''
     # Add categories
     for category_name, items in categories.items():
-        html_content += f"""
-        <div class="category">
-            <h2>🔧 {category_name}</h2>
-"""
+        html_content += f'''
+    <div class ="category"> 
+    <h2>🔧 {category_name} </ h2>
+'''
 
         for item in items:
-            url_info = item["url_info"]
-            result = item["result"]
+            url_info = item['url_info']
+            result = item['result']
 
-            status_class = "success" if result["success"] else "failed"
-            status_text = "✅ Success" if result["success"] else "❌ Failed"
+            status_class = 'success' if result['success'] else 'failed'
+            status_text = '✅ Success' if result['success'] else '❌ Failed'
 
-            html_content += f"""
-            <div class="demo-item">
-                <div class="demo-header">
-                    <div class="demo-title">
-                        {url_info['title']}
-                        <span class="user-type {url_info['user_type']}">{url_info['user_type']}</span>
-                        <span class="status {status_class}">{status_text}</span>
-                    </div>
-                    <div class="demo-description">{url_info['description']}</div>
-                    <div class="meta-info">
-                        <strong>URL:</strong> {url_info['path']} |
-                        <strong>User Type:</strong> {url_info['user_type'].title()}
-"""
+            html_content += f'''
+<div class ="demo-item">
 
-            if (
-                result["current_url"]
-                and result["current_url"] != f"{BASE_URL}{url_info['path']}"
-            ):
-                html_content += (
-                    f""" | <strong>Redirected to:</strong> {result['current_url']}"""
-                )
+<div class ="demo-header">
 
-            html_content += """
-                    </div>
-                </div>
-"""
+<div class ="demo-title">
+  {url_info['title']}
+<span class ="user-type {url_info['user_type']}">{url_info['user_type']}</span>
 
-            if result["success"]:
-                html_content += """
-                <div class="demo-content">
-                    <div class="screenshot-section">
-                        <h4>📸 Screenshot</h4>
-"""
-                if result["screenshot"]:
-                    html_content += f"""
-                        <img src="../{OUTPUT_DIR}/{result['screenshot']}" alt="{url_info['title']} Screenshot" class="screenshot">
-"""
+<span class ="status {status_class}">{status_text}</span>
+
+</ div>
+<div class ="demo-description">{url_info['description']}</div>
+
+<div class ="meta-info">
+
+<strong> URL: </ strong> {url_info['path']} |
+<strong> User
+Type: </ strong> {url_info['user_type'].title()}
+'''
+
+            if result['current_url'] and result['current_url'] != f"{BASE_URL}{url_info['path']}":
+                html_content += f''' | <strong> Redirected
+to: </ strong> {result['current_url']}
+'''
+
+            html_content += '''
+</ div>
+</ div>
+'''
+
+            if result['success']:
+                html_content += '''
+<div class ="demo-content">
+
+<div class ="screenshot-section">
+
+<h4>📸 Screenshot </ h4>
+'''
+                if result['screenshot']:
+                    html_content += f'''
+<img src ="../{OUTPUT_DIR}/{result['screenshot']}" alt="{url_info['title']} Screenshot" class="screenshot">
+'''
                 else:
-                    html_content += """
-                        <p>Screenshot not available</p>
-"""
+                    html_content += '''
+<p> Screenshot
+not available < / p >
+'''
 
-                html_content += """
-                    </div>
-                    <div class="video-section">
-                        <h4>🎥 Video Demonstration</h4>
-"""
-                if result["video"]:
-                    html_content += f"""
-                        <video controls preload="metadata">
-                            <source src="../{VIDEO_DIR}/{result['video']}" type="video/webm">
-                            Your browser does not support the video tag.
-                        </video>
-"""
+                html_content += '''
+</ div>
+<div class ="video-section"> 
+<h4>🎥 Video
+Demonstration </ h4>
+'''
+                if result['video']:
+                    html_content += f'''
+<video controls preload ="metadata"> < source src ="../{VIDEO_DIR}/{result['video']}" type="video/webm">
+ Your browser does not support the video tag. </ video>
+'''
                 else:
-                    html_content += """
-                        <p>Video not available</p>
-"""
+                    html_content += '''
+<p> Video
+not available </ p>
+'''
 
-                html_content += """
-                    </div>
-                </div>
-"""
+                html_content += '''
+</ div>
+</ div>
+'''
             else:
-                html_content += """
-                <div class="demo-content">
-                    <p style="text-align: center; color: #e17055; padding: 20px;">
-                        ⚠️ This demonstration failed to capture. Check the logs for more details.
-                    </p>
-                </div>
-"""
+                html_content += '''
+<div class ="demo-content">
 
-            html_content += """
-            </div>
-"""
+<p style ="text-align: center; color: #e17055; padding: 20px;">
+⚠️ This demonstration failed to capture.Check the logs for more details.
+</ p>
+</ div>
+'''
 
-        html_content += """
-        </div>
-"""
+            html_content += '''
+</ div>
+'''
 
-    html_content += f"""
-        <div class="footer">
-            <p>Generated by django-guest-user2 automated testing workflow</p>
-            <p>🔗 <a href="https://github.com/rsp2k/django-guest-user2">django-guest-user2 on GitHub</a></p>
-        </div>
-    </div>
-</body>
-</html>"""
+        html_content += '''
+< / div>
+'''
+
+    html_content += f'''
+<div class ="footer">
+
+<p> Generated
+by django - guest - user2 automated testing workflow
+</ p>
+<p>🔗 <a href ="https://github.com/rsp2k/django-guest-user2">django-guest-user2 on GitHub</a></p>
+</ div>
+</ div>
+</ body>
+</ html>'''
 
     # Write HTML file
-    html_path = os.path.join(WEB_DIR, "index.html")
-    with open(html_path, "w", encoding="utf-8") as f:
+    html_path = os.path.join(WEB_DIR, 'index.html')
+    with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
 
     logger.info(f"HTML index created: {html_path}")
     return html_path
 
-
 def main():
     setup_output_directories()
 
     # Get admin credentials from environment variables
-    admin_username = os.environ.get("DJANGO_SUPERUSER_USERNAME")
-    admin_password = os.environ.get("DJANGO_SUPERUSER_PASSWORD")
-    admin_credentials = (
-        (admin_username, admin_password) if admin_username and admin_password else None
-    )
+    admin_username = os.environ.get('DJANGO_SUPERUSER_USERNAME')
+    admin_password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+    admin_credentials = (admin_username, admin_password) if admin_username and admin_password else None
 
     logger.info(f"Starting comprehensive guest user demo at {datetime.now()}")
     logger.info(f"Base URL: {BASE_URL}")
@@ -669,13 +535,15 @@ def main():
 
     with sync_playwright() as p:
         # Launch browser with video recording enabled
-        browser = p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
+        browser = p.chromium.launch(
+            args=['--no-sandbox', '--disable-dev-shm-usage']
+        )
 
         # Create browser context with video recording
         context = browser.new_context(
-            viewport={"width": 1920, "height": 1080},
+            viewport={'width': 1920, 'height': 1080},
             record_video_dir=VIDEO_DIR,
-            record_video_size={"width": 1920, "height": 1080},
+            record_video_size={'width': 1920, 'height': 1080}
         )
 
         capture_results = []
@@ -683,7 +551,10 @@ def main():
         # Test each URL with its specified user type
         for url_info in URLS_TO_TEST:
             result = capture_url_with_user_type(context, url_info, admin_credentials)
-            capture_results.append({"url_info": url_info, "result": result})
+            capture_results.append({
+                'url_info': url_info,
+                'result': result
+            })
 
         # Close browser context and browser
         context.close()
@@ -693,56 +564,39 @@ def main():
         html_path = create_html_index(capture_results)
 
         # Print comprehensive summary
-        logger.info("\n" + "=" * 80)
+        logger.info(" " + "="*80)
         logger.info("COMPREHENSIVE GUEST USER DEMO SUMMARY")
-        logger.info("=" * 80)
-        successful = sum(1 for item in capture_results if item["result"]["success"])
+        logger.info("="*80)
+        successful = sum(1 for item in capture_results if item['result']['success'])
         total = len(capture_results)
-        logger.info(
-            f"Successfully captured: {successful}/{total} URL/user combinations"
-        )
+        logger.info(f"Successfully captured: {successful}/{total} URL/user combinations")
 
-        logger.info("\nResults by user type:")
-        for user_type in ["anonymous", "guest", "admin"]:
-            user_results = [
-                item
-                for item in capture_results
-                if item["url_info"]["user_type"] == user_type
-            ]
-            user_successful = sum(
-                1 for item in user_results if item["result"]["success"]
-            )
-            logger.info(
-                f"  {user_type.title()} user: {user_successful}/{len(user_results)} successful"
-            )
+        logger.info("\
+Results by user type:")
+        for user_type in ['anonymous', 'guest', 'admin']:
+            user_results = [item for item in capture_results if item['url_info']['user_type'] == user_type]
+            user_successful = sum(1 for item in user_results if item['result']['success'])
+            logger.info(f"  {user_type.title()} user: {user_successful}/{len(user_results)} successful")
 
-        logger.info("\nResults by category:")
+        logger.info("Results by category:")
         categories = {}
         for item in capture_results:
-            category = item["url_info"]["category"]
+            category = item['url_info']['category']
             if category not in categories:
                 categories[category] = []
             categories[category].append(item)
 
         for category, items in categories.items():
-            cat_successful = sum(1 for item in items if item["result"]["success"])
+            cat_successful = sum(1 for item in items if item['result']['success'])
             logger.info(f"  {category}: {cat_successful}/{len(items)} successful")
 
         # List generated files
-        logger.info("\n" + "=" * 80)
+        logger.info(" " + "="*80)
         logger.info("GENERATED FILES")
-        logger.info("=" * 80)
+        logger.info("="*80)
 
-        screenshot_files = (
-            [f for f in os.listdir(OUTPUT_DIR) if f.endswith(".png")]
-            if os.path.exists(OUTPUT_DIR)
-            else []
-        )
-        video_files = (
-            [f for f in os.listdir(VIDEO_DIR) if f.endswith(".webm")]
-            if os.path.exists(VIDEO_DIR)
-            else []
-        )
+        screenshot_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith('.png')] if os.path.exists(OUTPUT_DIR) else []
+        video_files = [f for f in os.listdir(VIDEO_DIR) if f.endswith('.webm')] if os.path.exists(VIDEO_DIR) else []
 
         logger.info(f"📄 HTML Index: {html_path}")
         logger.info(f"📸 Screenshots ({len(screenshot_files)}):")
@@ -754,18 +608,16 @@ def main():
             logger.info(f"    {f}")
 
         if successful == 0:
-            logger.error("\n⚠️  WARNING: No URLs were captured successfully!")
+            logger.error("⚠️  WARNING: No URLs were captured successfully!")
             sys.exit(1)
         elif successful < total:
-            logger.warning(
-                f"\n⚠️  WARNING: {total - successful} URLs failed to capture"
-            )
+            logger.warning(f"⚠️  WARNING: {total - successful} URLs failed to capture")
         else:
-            logger.info(f"\n🎉 All URLs captured successfully!")
+            logger.info(f"🎉 All URLs captured successfully!")
 
-        logger.info(f"\n🔖 View the complete demo at: {html_path}")
+        logger.info(f"\
+🔖 View the complete demo at: {html_path}")
         logger.info(f"Demo completed at {datetime.now()}")
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
