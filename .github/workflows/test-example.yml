@@ -225,9 +225,9 @@ jobs:
           exit 1
         fi
 
-    - name: Create enhanced screenshot and video script for guest user demo
+    - name: Create comprehensive guest user demo script
       run: |
-        cat > take_screenshots_and_videos.py << 'EOF'
+        cat > take_comprehensive_demo.py << 'EOF'
         #!/usr/bin/env python3
         import os
         import sys
@@ -236,39 +236,115 @@ jobs:
         from datetime import datetime
         from playwright.sync_api import sync_playwright
 
-        # Set up logging for the screenshot script
+        # Set up logging for the demo script
         logging.basicConfig(
             level=logging.DEBUG,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             handlers=[
-                logging.FileHandler('screenshot_process.log'),
+                logging.FileHandler('demo_process.log'),
                 logging.StreamHandler()
             ]
         )
 
-        logger = logging.getLogger('screenshot_script')
+        logger = logging.getLogger('guest_user_demo')
 
         # Define the base URL for your running Django project
         BASE_URL = os.environ.get('BASE_URL', 'http://127.0.0.1:8000')
 
-        # List of URLs to screenshot and record (relative to BASE_URL)
-        URLS_TO_CAPTURE = [
-            {
-                'path': '/',
-                'name': 'home_page',
-                'description': 'Root URL - Guest user landing page'
-            },
+        # Comprehensive URL test cases based on the django-guest-user2 URL structure
+        URLS_TO_TEST = [
             {
                 'path': '/admin/',
                 'name': 'admin_login',
-                'description': 'Django admin login page'
+                'description': 'Django admin login page',
+                'user_type': 'anonymous'
             },
             {
                 'path': '/admin/',
                 'name': 'admin_dashboard',
-                'description': 'Django admin dashboard (after login)',
+                'description': 'Django admin dashboard (logged in)',
+                'user_type': 'admin',
                 'requires_login': True
             },
+            {
+                'path': '/allow_guest_user/',
+                'name': 'allow_guest_user_anonymous',
+                'description': 'Allow guest user view (anonymous user)',
+                'user_type': 'anonymous'
+            },
+            {
+                'path': '/allow_guest_user/',
+                'name': 'allow_guest_user_guest',
+                'description': 'Allow guest user view (guest user)',
+                'user_type': 'guest'
+            },
+            {
+                'path': '/allow_guest_user/',
+                'name': 'allow_guest_user_regular',
+                'description': 'Allow guest user view (regular user)',
+                'user_type': 'admin'
+            },
+            {
+                'path': '/guest_user_required/',
+                'name': 'guest_user_required_anonymous',
+                'description': 'Guest user required view (anonymous - should create guest)',
+                'user_type': 'anonymous'
+            },
+            {
+                'path': '/guest_user_required/',
+                'name': 'guest_user_required_guest',
+                'description': 'Guest user required view (guest user)',
+                'user_type': 'guest'
+            },
+            {
+                'path': '/regular_user_required/',
+                'name': 'regular_user_required_anonymous',
+                'description': 'Regular user required view (anonymous - should redirect)',
+                'user_type': 'anonymous'
+            },
+            {
+                'path': '/regular_user_required/',
+                'name': 'regular_user_required_admin',
+                'description': 'Regular user required view (admin user)',
+                'user_type': 'admin'
+            },
+            {
+                'path': '/mixin/allow_guest_user/',
+                'name': 'mixin_allow_guest_user',
+                'description': 'Mixin-based allow guest user view',
+                'user_type': 'guest'
+            },
+            {
+                'path': '/mixin/guest_user_required/',
+                'name': 'mixin_guest_user_required',
+                'description': 'Mixin-based guest user required view',
+                'user_type': 'guest'
+            },
+            {
+                'path': '/mixin/regular_user_required/',
+                'name': 'mixin_regular_user_required',
+                'description': 'Mixin-based regular user required view',
+                'user_type': 'admin'
+            },
+            {
+                'path': '/convert/',
+                'name': 'convert_form_anonymous',
+                'description': 'Guest conversion form (anonymous - should redirect)',
+                'user_type': 'anonymous'
+            },
+            {
+                'path': '/convert/',
+                'name': 'convert_form_guest',
+                'description': 'Guest conversion form (guest user)',
+                'user_type': 'guest',
+                'interactive': True
+            },
+            {
+                'path': '/convert/success/',
+                'name': 'convert_success',
+                'description': 'Guest conversion success page',
+                'user_type': 'guest'
+            }
         ]
 
         OUTPUT_DIR = 'screenshots'
@@ -281,246 +357,169 @@ jobs:
                     os.makedirs(directory)
                     logger.info(f"Created directory: {directory}")
 
-        def login_to_admin_if_needed(page, username, password):
-            """
-            Logs into the Django admin if credentials are provided.
-            """
-            if username and password:
-                logger.info("Attempting to log into Django admin...")
-                try:
-                    page.goto(f"{BASE_URL}/admin/login/")
-                    
-                    # Wait for login form to be visible
-                    page.wait_for_selector('input[name="username"]', timeout=10000)
-                    
-                    # Add some delay for video recording
-                    page.wait_for_timeout(1000)
-                    
-                    logger.info("Filling in login credentials...")
-                    page.fill('input[name="username"]', username)
-                    page.wait_for_timeout(500)
-                    page.fill('input[name="password"]', password)
-                    page.wait_for_timeout(500)
-                    
-                    logger.info("Submitting login form...")
-                    page.click('input[type="submit"]')
+        def create_guest_user_session(context):
+            """Create a browser context with a guest user session."""
+            page = context.new_page()
+            
+            # Visit a guest-user-required page to trigger guest user creation
+            logger.info("Creating guest user session...")
+            page.goto(f"{BASE_URL}/guest_user_required/")
+            page.wait_for_timeout(2000)
+            
+            logger.info("Guest user session established")
+            return page
 
-                    # Wait for successful login - look for admin index page elements
-                    try:
-                        page.wait_for_selector('h1:has-text("Django administration")', timeout=10000)
-                        logger.info("Admin login successful!")
-                        page.wait_for_timeout(2000)  # Wait for page to fully load
-                        return True
-                    except:
-                        # If we don't see the admin header, check if we're still on login page
-                        if 'login' in page.url:
-                            logger.error("Login failed - still on login page")
-                            return False
-                        else:
-                            logger.info("Login appears successful (redirected away from login)")
-                            page.wait_for_timeout(2000)
-                            return True
-                            
-                except Exception as e:
-                    logger.error(f"Admin login failed: {e}")
-                    return False
-            return False
+        def login_admin_user(context, username, password):
+            """Log in as admin user."""
+            page = context.new_page()
+            
+            logger.info("Logging in as admin user...")
+            page.goto(f"{BASE_URL}/admin/login/")
+            page.wait_for_selector('input[name="username"]', timeout=10000)
+            
+            page.fill('input[name="username"]', username)
+            page.wait_for_timeout(500)
+            page.fill('input[name="password"]', password)
+            page.wait_for_timeout(500)
+            
+            page.click('input[type="submit"]')
+            
+            try:
+                page.wait_for_selector('h1:has-text("Django administration")', timeout=10000)
+                logger.info("Admin login successful!")
+                return page
+            except:
+                logger.error("Admin login failed")
+                return None
 
-        def capture_page_with_video(context, url_info, admin_logged_in=False):
+        def capture_url_with_user_type(context, url_info, admin_credentials=None):
             """
-            Capture both screenshot and video of a page interaction.
+            Capture URL with specific user type (anonymous, guest, or admin).
             """
             url_path = url_info['path']
-            page_name = url_info['name']
+            name = url_info['name']
             description = url_info['description']
-            requires_login = url_info.get('requires_login', False)
+            user_type = url_info['user_type']
+            interactive = url_info.get('interactive', False)
             
             full_url = f"{BASE_URL}{url_path}"
             
-            # Skip pages that require login if we're not logged in
-            if requires_login and not admin_logged_in:
-                logger.info(f"Skipping {page_name} - requires admin login but not available")
-                return False
-            
             try:
-                logger.info(f"Capturing {page_name}: {description}")
+                logger.info(f"Testing {name}: {description} [User: {user_type}]")
                 
-                # Create a new page for this capture session
-                page = context.new_page()
+                # Set up the appropriate user session
+                if user_type == 'anonymous':
+                    page = context.new_page()
+                elif user_type == 'guest':
+                    page = create_guest_user_session(context)
+                elif user_type == 'admin':
+                    if admin_credentials:
+                        page = login_admin_user(context, admin_credentials[0], admin_credentials[1])
+                        if not page:
+                            logger.error(f"Failed to create admin session for {name}")
+                            return False
+                    else:
+                        logger.error(f"Admin credentials required for {name}")
+                        return False
+                else:
+                    logger.error(f"Unknown user type: {user_type}")
+                    return False
                 
-                # Start video recording for this page
-                video_path = os.path.join(VIDEO_DIR, f"{page_name}.webm")
-                
-                logger.info(f"Starting video recording: {video_path}")
-                
-                # Navigate to the URL
-                logger.info(f"Navigating to {full_url}...")
+                # Navigate to the target URL
+                logger.info(f"Navigating to {full_url}")
                 page.goto(full_url, wait_until='domcontentloaded', timeout=30000)
-                
-                # Wait for content to load
                 page.wait_for_timeout(3000)
                 
-                # For admin pages, wait for Django admin CSS to load
-                if '/admin/' in url_path:
-                    try:
-                        page.wait_for_selector('.breadcrumbs, #header, .module, #content', timeout=5000)
-                        logger.info("Admin page elements loaded")
-                    except:
-                        logger.warning("Some admin elements didn't load, continuing anyway")
-                
-                # Demonstrate user interactions based on the page
-                if page_name == 'home_page':
-                    demonstrate_guest_user_homepage(page)
-                elif page_name == 'admin_dashboard' and admin_logged_in:
-                    demonstrate_admin_dashboard(page)
-                elif page_name == 'admin_login':
-                    demonstrate_login_page(page)
+                # Handle interactive pages
+                if interactive and url_path == '/convert/':
+                    demonstrate_conversion_form(page)
                 
                 # Take screenshot
-                screenshot_path = os.path.join(OUTPUT_DIR, f"{page_name}.png")
+                screenshot_path = os.path.join(OUTPUT_DIR, f"{name}.png")
                 page.screenshot(path=screenshot_path, full_page=True)
                 logger.info(f"Screenshot saved: {screenshot_path}")
                 
-                # Wait a bit more for video
+                # Additional wait for video
                 page.wait_for_timeout(2000)
                 
-                # Close the page (this will stop the video recording)
+                # Log the current URL to see if there were redirects
+                current_url = page.url
+                if current_url != full_url:
+                    logger.info(f"Redirected from {full_url} to {current_url}")
+                
+                # Log page title and any visible text for debugging
+                try:
+                    title = page.title()
+                    logger.info(f"Page title: {title}")
+                    
+                    # Look for any text content that gives us clues about the page state
+                    body_text = page.locator('body').inner_text()[:200] if page.locator('body').count() > 0 else "No body content"
+                    logger.info(f"Page content preview: {body_text}...")
+                    
+                except Exception as e:
+                    logger.warning(f"Could not extract page info: {e}")
+                
                 page.close()
-                
-                # Video should be automatically saved by Playwright
-                if os.path.exists(video_path):
-                    logger.info(f"Video saved: {video_path}")
-                else:
-                    # Video might be saved with a different name, let's check the videos directory
-                    video_files = [f for f in os.listdir(VIDEO_DIR) if f.endswith('.webm')]
-                    if video_files:
-                        latest_video = max([os.path.join(VIDEO_DIR, f) for f in video_files], key=os.path.getctime)
-                        logger.info(f"Video may have been saved as: {latest_video}")
-                
                 return True
                 
             except Exception as e:
-                logger.error(f"Failed to capture {page_name}: {e}")
+                logger.error(f"Failed to capture {name}: {e}")
                 return False
 
-        def demonstrate_guest_user_homepage(page):
+        def demonstrate_conversion_form(page):
             """
-            Demonstrate guest user functionality on the homepage.
-            """
-            try:
-                logger.info("Demonstrating guest user homepage functionality...")
-                
-                # Look for any guest user related elements
-                guest_elements = page.query_selector_all('[class*="guest"], [id*="guest"], [data-guest]')
-                if guest_elements:
-                    logger.info(f"Found {len(guest_elements)} guest-related elements")
-                    # Click on the first guest element if it's clickable
-                    for element in guest_elements[:2]:  # Try first 2 elements
-                        try:
-                            if element.is_visible():
-                                element.click()
-                                page.wait_for_timeout(1000)
-                                break
-                        except:
-                            continue
-                else:
-                    logger.info("No obvious guest user elements found")
-                    # Scroll around to show the page content
-                    page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
-                    page.wait_for_timeout(1000)
-                    page.evaluate("window.scrollTo(0, 0)")
-                    page.wait_for_timeout(1000)
-                
-            except Exception as e:
-                logger.warning(f"Error demonstrating homepage: {e}")
-
-        def demonstrate_login_page(page):
-            """
-            Demonstrate the admin login page (without actually logging in for this demo).
+            Demonstrate the guest user to regular user conversion form.
             """
             try:
-                logger.info("Demonstrating admin login page...")
+                logger.info("Demonstrating guest user conversion form...")
                 
-                # Focus on username field
+                # Wait for form to load
+                page.wait_for_timeout(2000)
+                
+                # Look for form fields
                 username_field = page.query_selector('input[name="username"]')
-                if username_field:
-                    username_field.focus()
-                    page.wait_for_timeout(1000)
+                password1_field = page.query_selector('input[name="password1"]')
+                password2_field = page.query_selector('input[name="password2"]')
+                
+                if username_field and password1_field and password2_field:
+                    logger.info("Filling out conversion form...")
                     
-                # Focus on password field
-                password_field = page.query_selector('input[name="password"]')
-                if password_field:
-                    password_field.focus()
-                    page.wait_for_timeout(1000)
-                
-                # Don't actually submit, just demonstrate the interface
-                logger.info("Login page demonstration completed")
-                
+                    # Fill the form with demo data
+                    username_field.fill("demo_converted_user")
+                    page.wait_for_timeout(500)
+                    
+                    password1_field.fill("demo_password_123")
+                    page.wait_for_timeout(500)
+                    
+                    password2_field.fill("demo_password_123")
+                    page.wait_for_timeout(500)
+                    
+                    # Note: We don't submit the form to avoid actually converting the user
+                    # This is just for demonstration purposes
+                    logger.info("Form filled (not submitted for demo purposes)")
+                else:
+                    logger.info("Conversion form fields not found as expected")
+                    
             except Exception as e:
-                logger.warning(f"Error demonstrating login page: {e}")
-
-        def demonstrate_admin_dashboard(page):
-            """
-            Demonstrate the admin dashboard functionality.
-            """
-            try:
-                logger.info("Demonstrating admin dashboard...")
-                
-                # Look for auth/user management links
-                user_links = page.query_selector_all('a[href*="auth"], a[href*="user"]')
-                if user_links:
-                    logger.info(f"Found {len(user_links)} user management links")
-                    # Click on the first user-related link
-                    for link in user_links[:1]:
-                        try:
-                            if link.is_visible():
-                                logger.info(f"Clicking on: {link.text_content()}")
-                                link.click()
-                                page.wait_for_timeout(2000)
-                                
-                                # Go back to dashboard
-                                page.go_back()
-                                page.wait_for_timeout(1000)
-                                break
-                        except:
-                            continue
-                
-                # Look for any guest user related admin sections
-                guest_links = page.query_selector_all('a[href*="guest"], [class*="guest"]')
-                if guest_links:
-                    logger.info(f"Found {len(guest_links)} guest user admin links")
-                    for link in guest_links[:1]:
-                        try:
-                            if link.is_visible():
-                                logger.info(f"Clicking on guest user link: {link.text_content()}")
-                                link.click()
-                                page.wait_for_timeout(2000)
-                                page.go_back()
-                                page.wait_for_timeout(1000)
-                                break
-                        except:
-                            continue
-                
-                logger.info("Admin dashboard demonstration completed")
-                
-            except Exception as e:
-                logger.warning(f"Error demonstrating admin dashboard: {e}")
+                logger.warning(f"Error demonstrating conversion form: {e}")
 
         def main():
             setup_output_directories()
 
-            # Get credentials from environment variables
-            DJANGO_SUPERUSER_USERNAME = os.environ.get('DJANGO_SUPERUSER_USERNAME')
-            DJANGO_SUPERUSER_PASSWORD = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+            # Get admin credentials from environment variables
+            admin_username = os.environ.get('DJANGO_SUPERUSER_USERNAME')
+            admin_password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+            admin_credentials = (admin_username, admin_password) if admin_username and admin_password else None
 
-            logger.info(f"Starting screenshot and video capture at {datetime.now()}")
+            logger.info(f"Starting comprehensive guest user demo at {datetime.now()}")
             logger.info(f"Base URL: {BASE_URL}")
             logger.info(f"Output directories: {OUTPUT_DIR}, {VIDEO_DIR}")
+            logger.info(f"Testing {len(URLS_TO_TEST)} different URL/user combinations")
 
             with sync_playwright() as p:
                 # Launch browser with video recording enabled
                 browser = p.chromium.launch(
-                    args=['--no-sandbox', '--disable-dev-shm-usage']  # Useful for CI environments
+                    args=['--no-sandbox', '--disable-dev-shm-usage']
                 )
                 
                 # Create browser context with video recording
@@ -530,23 +529,15 @@ jobs:
                     record_video_size={'width': 1920, 'height': 1080}
                 )
                 
-                # Create a page for admin login
-                login_page = context.new_page()
-                
-                # Perform admin login if credentials are provided
-                admin_logged_in = login_to_admin_if_needed(login_page, DJANGO_SUPERUSER_USERNAME, DJANGO_SUPERUSER_PASSWORD)
-                
-                # Close the login page
-                login_page.close()
-                
                 capture_results = []
                 
-                # Capture each URL with video recording
-                for url_info in URLS_TO_CAPTURE:
-                    success = capture_page_with_video(context, url_info, admin_logged_in)
+                # Test each URL with its specified user type
+                for url_info in URLS_TO_TEST:
+                    success = capture_url_with_user_type(context, url_info, admin_credentials)
                     capture_results.append({
                         'name': url_info['name'],
                         'description': url_info['description'],
+                        'user_type': url_info['user_type'],
                         'success': success
                     })
 
@@ -554,22 +545,29 @@ jobs:
                 context.close()
                 browser.close()
                 
-                # Print summary
-                logger.info("\n" + "="*60)
-                logger.info("CAPTURE SUMMARY")
-                logger.info("="*60)
+                # Print comprehensive summary
+                logger.info("\n" + "="*80)
+                logger.info("COMPREHENSIVE GUEST USER DEMO SUMMARY")
+                logger.info("="*80)
                 successful = sum(1 for r in capture_results if r['success'])
                 total = len(capture_results)
-                logger.info(f"Successfully captured: {successful}/{total} pages")
+                logger.info(f"Successfully captured: {successful}/{total} URL/user combinations")
                 
+                logger.info("\nResults by user type:")
+                for user_type in ['anonymous', 'guest', 'admin']:
+                    user_results = [r for r in capture_results if r['user_type'] == user_type]
+                    user_successful = sum(1 for r in user_results if r['success'])
+                    logger.info(f"  {user_type.title()} user: {user_successful}/{len(user_results)} successful")
+                
+                logger.info("\nDetailed results:")
                 for result in capture_results:
-                    status = "✓" if result['success'] else "✗"
-                    logger.info(f"{status} {result['name']}: {result['description']}")
+                    status = "✅" if result['success'] else "❌"
+                    logger.info(f"{status} [{result['user_type'].upper()}] {result['name']}: {result['description']}")
                 
                 # List generated files
-                logger.info("\n" + "="*60)
+                logger.info("\n" + "="*80)
                 logger.info("GENERATED FILES")
-                logger.info("="*60)
+                logger.info("="*80)
                 
                 screenshot_files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith('.png')] if os.path.exists(OUTPUT_DIR) else []
                 video_files = [f for f in os.listdir(VIDEO_DIR) if f.endswith('.webm')] if os.path.exists(VIDEO_DIR) else []
@@ -583,21 +581,23 @@ jobs:
                     logger.info(f"  🎥 {f}")
                 
                 if successful == 0:
-                    logger.error("\nWARNING: No pages were captured successfully!")
+                    logger.error("\n⚠️  WARNING: No URLs were captured successfully!")
                     sys.exit(1)
                 elif successful < total:
-                    logger.warning(f"\nWARNING: {total - successful} pages failed to capture")
+                    logger.warning(f"\n⚠️  WARNING: {total - successful} URLs failed to capture")
                 else:
-                    logger.info(f"\n🎉 All pages captured successfully!")
+                    logger.info(f"\n🎉 All URLs captured successfully!")
+                    
+                logger.info(f"\nDemo completed at {datetime.now()}")
 
         if __name__ == '__main__':
             main()
         EOF
 
-    - name: Take screenshots and videos with guest user demonstration
+    - name: Run comprehensive guest user demonstration
       run: |
-        echo "=== Starting screenshot and video capture with guest user demonstration ==="
-        python take_screenshots_and_videos.py
+        echo "=== Starting comprehensive guest user demonstration ==="
+        python take_comprehensive_demo.py
       env:
         DJANGO_SUPERUSER_USERNAME: testuser
         DJANGO_SUPERUSER_PASSWORD: testpassword123
@@ -625,27 +625,42 @@ jobs:
           echo "No Django server log found"
         fi
         
-        # Copy screenshot process log
-        if [ -f screenshot_process.log ]; then
-          cp screenshot_process.log logs/screenshot_process.log
-          echo "Screenshot process log copied"
+        # Copy demo process log
+        if [ -f demo_process.log ]; then
+          cp demo_process.log logs/demo_process.log
+          echo "Demo process log copied"
         else
-          echo "No screenshot process log found"
+          echo "No demo process log found"
         fi
         
-        # Create a summary log
+        # Create a comprehensive summary log
         cat > logs/summary.log << EOF
-        Django Guest User Example Test Summary
-        ======================================
+        Django Guest User Comprehensive Demo Summary
+        ===========================================
         Timestamp: $(date)
         Django Settings: test_proj.settings_debug
         Base URL: $BASE_URL
         Debug Mode: $DEBUG
         Django Log Level: $DJANGO_LOG_LEVEL
         
-        Test Focus: Django Guest User functionality demonstration
-        Features Tested: Guest user creation, authentication, and management
-        Visual Documentation: Screenshots and videos of user interactions
+        Test Coverage: Complete django-guest-user2 URL structure
+        User Types Tested: Anonymous, Guest, Admin
+        Features Demonstrated:
+        - Guest user automatic creation
+        - Permission-based access control
+        - Decorator-based views (@allow_guest_user, @guest_user_required, @regular_user_required)
+        - Mixin-based views (AllowGuestUserMixin, GuestUserRequiredMixin, RegularUserRequiredMixin)
+        - Guest user to regular user conversion workflow
+        - Admin interface integration
+        
+        URLs Tested (15 combinations):
+        - /admin/ (anonymous & admin)
+        - /allow_guest_user/ (all user types)
+        - /guest_user_required/ (anonymous & guest)
+        - /regular_user_required/ (anonymous & admin)  
+        - /mixin/* views (appropriate user types)
+        - /convert/ (conversion workflow)
+        - /convert/success/ (success page)
         
         Screenshots Generated:
         $(find screenshots -name "*.png" 2>/dev/null | sort || echo "No screenshots found")
@@ -662,32 +677,32 @@ jobs:
 
     - name: Upload screenshots as artifact
       uses: actions/upload-artifact@v4
-      if: always()  # Upload even if capture step fails
+      if: always()
       with:
-        name: django-guest-user-screenshots
+        name: django-guest-user-comprehensive-screenshots
         path: screenshots/
         retention-days: 30
 
     - name: Upload videos as artifact
       uses: actions/upload-artifact@v4
-      if: always()  # Upload even if capture step fails
+      if: always()
       with:
-        name: django-guest-user-videos
+        name: django-guest-user-comprehensive-videos
         path: videos/
         retention-days: 30
 
     - name: Upload debug logs as artifact
       uses: actions/upload-artifact@v4
-      if: always()  # Upload even if previous steps fail
+      if: always()
       with:
-        name: django-debug-logs
+        name: django-guest-user-comprehensive-logs
         path: logs/
         retention-days: 30
 
-    - name: Display capture summary
+    - name: Display comprehensive demo summary
       if: always()
       run: |
-        echo "=== CAPTURE SUMMARY ==="
+        echo "=== COMPREHENSIVE DEMO SUMMARY ==="
         if [ -f logs/summary.log ]; then
          cat logs/summary.log
         fi
