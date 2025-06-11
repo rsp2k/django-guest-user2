@@ -25,6 +25,30 @@ BASE_URL = os.environ.get('BASE_URL', 'http://127.0.0.1:8000')
 # Comprehensive URL test cases based on the django-guest-user2 URL structure
 URLS_TO_TEST = [
     {
+        'path': '/',
+        'name': 'homepage',
+        'title': 'Django Guest User Demo Homepage',
+        'description': 'Main homepage demonstrating django-guest-user2 functionality with navigation',
+        'user_type': 'anonymous',
+        'category': 'Navigation'
+    },
+    {
+        'path': '/',
+        'name': 'homepage_guest',
+        'title': 'Homepage (Guest User)',
+        'description': 'Homepage accessed by a guest user showing dynamic user status',
+        'user_type': 'guest',
+        'category': 'Navigation'
+    },
+    {
+        'path': '/',
+        'name': 'homepage_admin',
+        'title': 'Homepage (Admin User)',
+        'description': 'Homepage accessed by an admin user showing different user status',
+        'user_type': 'admin',
+        'category': 'Navigation'
+    },
+    {
         'path': '/admin/',
         'name': 'admin_login',
         'title': 'Django Admin Login',
