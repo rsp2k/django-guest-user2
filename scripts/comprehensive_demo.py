@@ -5,7 +5,7 @@ import shutil
 from datetime import datetime
 from playwright.sync_api import sync_playwright
 
-from .urls_to_test import URLS_TO_TEST
+from scripts.urls_to_test import URLS_TO_TEST
 
 # Set up logging for the demo script
 logging.basicConfig(
