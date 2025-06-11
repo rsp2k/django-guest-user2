@@ -21,7 +21,6 @@ classifiers = [
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -46,7 +45,7 @@ keywords = ["django", "guest", "user", "authentication", "temporary", "lazy", "s
 packages = [{ include = "guest_user" }]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.9"
 django = ">=3.2"
 
 [tool.poetry.group.dev.dependencies]
@@ -71,7 +70,7 @@ addopts = "--no-migrations"
 
 [tool.black]
 line-length = 88
-target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+target-version = ['py39', 'py310', 'py311', 'py312']
 include = '\.pyi?$'
 extend-exclude = '''
 # A regex preceded by ^/ will apply only to files and directories
