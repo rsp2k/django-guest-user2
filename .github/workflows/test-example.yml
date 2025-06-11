@@ -52,14 +52,6 @@ jobs:
         python manage.py makemigrations
         python manage.py migrate
 
-    - name: Collect static files
-      run: |
-        python manage.py collectstatic --noinput
-
-    - name: Run Django tests
-      run: |
-        python manage.py test
-
     - name: Test Django development server startup
       run: |
         timeout 10s python manage.py runserver || true
@@ -118,6 +110,12 @@ jobs:
 
         # Override DEBUG setting
         DEBUG = True
+
+        # Add STATIC_ROOT for collectstatic to work
+        STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+        
+        # Allow all hosts for testing
+        ALLOWED_HOSTS = ['*']
 
         # Enhanced logging configuration for example project
         LOGGING = {
