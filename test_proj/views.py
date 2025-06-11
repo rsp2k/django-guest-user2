@@ -12,6 +12,11 @@ from guest_user.mixins import (
 )
 
 
+def home_view(request):
+    """Homepage that demonstrates django-guest-user2 functionality."""
+    return render(request, "home.html")
+
+
 @allow_guest_user()
 def allow_guest_user_view(request):
     return render(request, "guest.html")
