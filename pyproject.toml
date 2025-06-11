@@ -4,13 +4,13 @@ version = "0.5.5"
 description = "A Django app that lets visitors interact with your site without registration."
 authors = [
   "Julian Wachholz <julian@wachholz.ch>",
-  "blag <blag@users.noreply.github.com>",
+  "Ryan Malloy <rpm@malloys.us>",
 ]
 readme = "README.md"
 license = "MIT"
 
-repository = "https://github.com/julianwachholz/django-guest-user"
-homepage = "https://github.com/julianwachholz/django-guest-user"
+repository = "https://github.com/rsp2k/django-guest-user2"
+homepage = "https://github.com/rsp2k/django-guest-user2"
 
 classifiers = [
   "Development Status :: 4 - Beta",
