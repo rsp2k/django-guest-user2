@@ -1,0 +1,351 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: "0 5 13 * *"
+  workflow_dispatch:
+
+jobs:
+  # Job 1: Code Lint (runs first)
+  lint:
+    name: Code Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Run flake8
+        uses: julianwachholz/flake8-action@v2
+        with:
+          checkName: "Python Lint"
+          plugins: flake8-black
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Job 2: Tests (runs after lint succeeds)
+  test:
+    name: Tests (Python ${{ matrix.python-version }}, Django ${{ matrix.django-version }})
+    runs-on: ubuntu-latest
+    needs: lint  # Only run if lint job succeeds
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        django-version: ["3.2", "4.0", "4.1", "4.2", "5.0", "5.1", "5.2", "main"]
+        exclude:
+          # Django 5.0+ requires Python 3.10+
+          - python-version: "3.8"
+            django-version: "5.0"
+          - python-version: "3.8"
+            django-version: "5.1"
+          - python-version: "3.8"
+            django-version: "5.2"
+          - python-version: "3.8"
+            django-version: "main"
+          - python-version: "3.9"
+            django-version: "5.0"
+          - python-version: "3.9"
+            django-version: "5.1"
+          - python-version: "3.9"
+            django-version: "5.2"
+          - python-version: "3.9"
+            django-version: "main"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Cache poetry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ matrix.python-version }}-v1-${{ hashFiles('tox.ini') }}-${{ hashFiles('poetry.lock') }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade tox tox-gh-actions
+
+      - name: Tox tests
+        run: |
+          tox -v
+        env:
+          DJANGO: ${{ matrix.django-version }}
+
+  # Job 3: Integration Tests (runs after both lint and test jobs succeed)
+  test-example:
+    name: Test Django Guest User Example
+    runs-on: ubuntu-latest
+    needs: [lint, test]  # Only run if both lint and test jobs succeed
+    
+    env:
+      BASE_URL: http://127.0.0.1:8000
+      SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY || 'django-insecure-test-example-key-not-for-production-12345' }}
+      DEBUG: 'True'
+      # Enable detailed Django logging
+      DJANGO_LOG_LEVEL: 'DEBUG'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Set up Node.js for Playwright
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install Django==5.1
+        pip install django-allauth pytest pytest-django requests-oauthlib
+        pip install playwright
+
+    - name: Install Playwright browsers
+      run: |
+        playwright install --with-deps chromium
+
+    - name: Prepare Django project
+      run: |
+        echo "=== Running Django migrations ==="
+        python manage.py migrate --settings=test_proj.settings_debug
+        
+        echo "=== Collecting static files ==="
+        python manage.py collectstatic --noinput --settings=test_proj.settings_debug
+
+    - name: Create test superuser
+      run: |
+        echo "from django.contrib.auth import get_user_model; User = get_user_model(); \
+        User.objects.filter(username='testuser').exists() or \
+        User.objects.create_superuser('testuser', 'test@example.com', 'testpassword123')" \
+        | python manage.py shell --settings=test_proj.settings_debug
+      env:
+        DJANGO_SUPERUSER_USERNAME: testuser
+        DJANGO_SUPERUSER_PASSWORD: testpassword123
+
+    - name: Start Django development server with debug logging
+      run: |
+        # Start Django server in background with debug logging
+        echo "Starting Django server with debug logging..."
+        python manage.py runserver 0.0.0.0:8000 --settings=test_proj.settings_debug > ../django_server.log 2>&1 &
+        echo $! > django_server.pid
+        echo "Django server started with PID $(cat django_server.pid)"
+        
+        # Wait for Django to start up
+        echo "Waiting for Django server to be ready..."
+        for i in {1..30}; do
+          if curl -f http://127.0.0.1:8000/admin/login/ > /dev/null 2>&1; then
+            echo "Django server is ready!"
+            break
+          fi
+          echo "Attempt $i: Django server not ready yet, waiting..."
+          sleep 2
+        done
+        
+        # Final check
+        if ! curl -f http://127.0.0.1:8000/admin/login/ > /dev/null 2>&1; then
+          echo "ERROR: Django server failed to start properly"
+          echo "=== Django Server Log ==="
+          cat ../django_server.log || echo "No server log found"
+          echo "=== Django Debug Log ==="
+          cat ../django_debug_main.log || echo "No debug log found"
+          cat django_server.pid
+          ps aux | grep manage.py
+          exit 1
+        fi
+
+    - name: Run comprehensive guest user demonstration
+      run: |
+        echo "=== Starting comprehensive guest user demonstration ==="
+        python scripts/comprehensive_demo.py
+      env:
+        DJANGO_SUPERUSER_USERNAME: testuser
+        DJANGO_SUPERUSER_PASSWORD: testpassword123
+        BASE_URL: http://127.0.0.1:8000
+
+    - name: Collect all log files
+      if: always()
+      run: |
+        echo "=== Collecting log files ==="
+        mkdir -p logs
+        
+        # Copy main Django debug log
+        if [ -f django_debug_main.log ]; then
+          cp django_debug_main.log logs/django_debug_main.log
+          echo "Main Django debug log copied"
+        else
+          echo "No main Django debug log found"
+        fi
+        
+        # Copy Django server log
+        if [ -f django_server.log ]; then
+          cp django_server.log logs/django_server.log
+          echo "Django server log copied"
+        else
+          echo "No Django server log found"
+        fi
+        
+        # Copy demo process log
+        if [ -f demo_process.log ]; then
+          cp demo_process.log logs/demo_process.log
+          echo "Demo process log copied"
+        else
+          echo "No demo process log found"
+        fi
+        
+        # Copy request-specific logs
+        if [ -d request_logs ]; then
+          cp -r request_logs logs/
+          echo "Request-specific logs copied"
+          echo "Request logs found:"
+          ls -la request_logs/ | head -20
+          if [ $(ls request_logs/ | wc -l) -gt 20 ]; then
+            echo "... and $(( $(ls request_logs/ | wc -l) - 20 )) more files"
+          fi
+        else
+          echo "No request logs directory found"
+        fi
+        
+        echo "All log files collected in logs/ directory"
+        ls -la logs/ || echo "No logs directory found"
+
+    - name: Create comprehensive demo archive
+      if: always()
+      run: |
+        echo "=== Creating comprehensive demo archive ==="
+        mkdir -p demo_archive
+        
+        # Copy all demo content to archive directory
+        if [ -d screenshots ]; then
+          cp -r screenshots demo_archive/
+          echo "Screenshots copied to archive"
+        fi
+        
+        if [ -d videos ]; then
+          cp -r videos demo_archive/
+          echo "Videos copied to archive"
+        fi
+        
+        if [ -d web_demo ]; then
+          cp -r web_demo demo_archive/
+          echo "Web demo copied to archive"
+        fi
+        
+        # Create a README for the archive
+        cat > demo_archive/README.md << 'EOF'
+        # Django Guest User Comprehensive Demo Archive
+        
+        This archive contains a complete visual demonstration of django-guest-user2 functionality.
+        
+        ## Contents
+        
+        - **web_demo/index.html** - Main HTML index showcasing all demonstrations
+        - **screenshots/** - PNG screenshots of each URL/user combination
+        - **videos/** - WebM video recordings of browser interactions
+        
+        ## How to View
+        
+        1. Extract this archive
+        2. Open `web_demo/index.html` in your web browser
+        3. Browse through the categorized demonstrations
+        
+        ## Test Coverage
+        
+        This demo covers:
+        - Guest user automatic creation
+        - Permission-based access control
+        - Decorator-based views (@allow_guest_user, @guest_user_required, @regular_user_required)
+        - Mixin-based views (AllowGuestUserMixin, GuestUserRequiredMixin, RegularUserRequiredMixin)
+        - Guest user to regular user conversion workflow
+        - Admin interface integration
+        
+        Generated: $(date)
+        Repository: https://github.com/rsp2k/django-guest-user2
+        EOF
+        
+        echo "Archive structure:"
+        find demo_archive -type f | sort
+
+    - name: Upload comprehensive demo archive
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: django-guest-user-comprehensive-demo
+        path: demo_archive/
+        retention-days: 30
+
+    - name: Upload debug logs as artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: django-guest-user-debug-logs
+        path: logs/
+        retention-days: 30
+
+    - name: Display comprehensive demo summary
+      if: always()
+      run: |
+        echo "=== COMPREHENSIVE DEMO SUMMARY ==="
+        if [ -f logs/summary.log ]; then
+         cat logs/summary.log
+        fi
+        
+        echo ""
+        echo "=== DEMO ARCHIVE CONTENTS ==="
+        if [ -d demo_archive ]; then
+          echo "📦 Complete demo archive created: django-guest-user-comprehensive-demo"
+          echo "🔄 Main entry point: demo_archive/web_demo/index.html"
+          echo ""
+          echo "Archive contents:"
+          find demo_archive -type f | sort
+        else
+          echo "No demo archive created"
+        fi
+        
+        echo ""
+        echo "=== DEBUG LOGS SUMMARY ==="
+        if [ -d logs ]; then
+          echo "📋 Debug logs archive created: django-guest-user-debug-logs"
+          echo "🔄 Main log: logs/django_debug_main.log"
+          echo "🔄 Request logs index: logs/request_logs_index.md"
+          echo ""
+          echo "Log files:"
+          ls -la logs/
+          if [ -d logs/request_logs ]; then
+            echo ""
+            echo "Request-specific logs (first 10):"
+            ls logs/request_logs/ | head -10
+            if [ $(ls logs/request_logs/ | wc -l) -gt 10 ]; then
+              echo "... and $(( $(ls logs/request_logs/ | wc -l) - 10 )) more request log files"
+            fi
+          fi
+        else
+          echo "No logs directory found"
+        fi
+
+    - name: Stop Django server
+      if: always()
+      run: |
+        if [ -f django_server.pid ]; then
+         kill $(cat django_server.pid) || true
+         rm django_server.pid
+        fi
