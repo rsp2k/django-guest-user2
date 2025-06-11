@@ -47,8 +47,13 @@ def test_setting_name_generator_using_request(settings):
     request = RequestFactory().get(TEST_REQUEST_URL)
     request.COOKIES["username_prefix"] = TEST_PREFIX
 
-    settings.GUEST_USER_NAME_GENERATOR = "test_proj.test_settings.my_name_generator_using_request"
-    assert GuestManager().generate_username(request=request) == f"{TEST_PREFIX}{TEST_USERNAME}"
+    settings.GUEST_USER_NAME_GENERATOR = (
+        "test_proj.test_settings.my_name_generator_using_request"
+    )
+    assert (
+        GuestManager().generate_username(request=request)
+        == f"{TEST_PREFIX}{TEST_USERNAME}"
+    )
 
 
 def test_setting_model(settings):

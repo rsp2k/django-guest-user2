@@ -3,13 +3,13 @@
 A modern Django app that allows visitors to interact with your site
 as temporary users without requiring registration.
 
-This is a maintained fork (django-guest-user2) of the original 
-julianwachholz/django-guest-user project, providing ongoing maintenance, 
+This is a maintained fork (django-guest-user2) of the original
+julianwachholz/django-guest-user project, providing ongoing maintenance,
 bug fixes, and Django 5.x support.
 
 Features:
 - Zero-friction onboarding for users
-- Automatic guest account creation  
+- Automatic guest account creation
 - Seamless conversion to registered users
 - Built-in cleanup and management tools
 - Production-ready with comprehensive testing

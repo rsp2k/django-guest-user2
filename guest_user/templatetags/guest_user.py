@@ -9,7 +9,6 @@ To use them, load them in your template:
 
 """
 
-
 from django.template import Library
 
 from ..functions import is_guest_user as is_guest_user_func
